@@ -7,7 +7,6 @@ import Link from 'next/link'
 import ApertureMark from '@/components/ApertureMark'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-
 const CREDS = [
   { num: '200+', label: 'Commercials' },
   { num: '3',    label: 'Films' },
@@ -40,37 +39,34 @@ function useFrameCounter() {
 
 export default function Hero() {
   const [roleIdx, setRoleIdx] = useState(0)
-  const bgRef    = useRef<HTMLDivElement>(null)
-  const heroRef  = useRef<HTMLDivElement>(null)
-  const frameCount = useFrameCounter()
+  const parallaxRef = useRef<HTMLDivElement>(null) // ONLY for mouse parallax — NOT for Framer Motion
+  const frameCount  = useFrameCounter()
 
-  // ── Scroll Zoom ──────────────────────────────────────────────────
+  // ── Scroll values ────────────────────────────────────────────────
   const { scrollY } = useScroll()
-  const bgScaleRaw   = useTransform(scrollY, [0, 600], [1, 1.18])
-  const bgBlurRaw    = useTransform(scrollY, [0, 500], [0, 14])
-  const bgOpacityRaw = useTransform(scrollY, [0, 450], [1, 0.45])
-  const contentYRaw  = useTransform(scrollY, [0, 350], [0, -50])
-  const contentOpacityRaw = useTransform(scrollY, [0, 280], [1, 0])
 
-  const bgScale     = useSpring(bgScaleRaw,   { stiffness: 80, damping: 20 })
-  const contentY    = useSpring(contentYRaw,  { stiffness: 80, damping: 20 })
+  // Background: dramatic zoom in + darken
+  const bgScaleRaw    = useTransform(scrollY, [0, 700], [1, 1.45])
+  const bgOpacityRaw  = useTransform(scrollY, [0, 500], [1, 0.35])
 
-  // Mouse parallax on background
+  // Content: scale up slightly + fade (zoom-through effect)
+  const contentScaleRaw   = useTransform(scrollY, [0, 400], [1, 1.08])
+  const contentOpacityRaw = useTransform(scrollY, [0, 320], [1, 0])
+  const contentYRaw       = useTransform(scrollY, [0, 400], [0, -30])
+
+  const bgScale       = useSpring(bgScaleRaw,       { stiffness: 60, damping: 18 })
+  const contentScale  = useSpring(contentScaleRaw,  { stiffness: 60, damping: 18 })
+  const contentY      = useSpring(contentYRaw,      { stiffness: 60, damping: 18 })
+
+  // ── Mouse parallax — applied to SEPARATE element, no Framer Motion conflict ──
   useEffect(() => {
-    const bg = bgRef.current
-    if (!bg) return
+    const el = parallaxRef.current
+    if (!el) return
     let raf: number, mx = 0.5, my = 0.5, cx = 0.5, cy = 0.5
-    const onMove = (e: MouseEvent) => {
-      mx = e.clientX / window.innerWidth
-      my = e.clientY / window.innerHeight
-    }
+    const onMove = (e: MouseEvent) => { mx = e.clientX / window.innerWidth; my = e.clientY / window.innerHeight }
     const tick = () => {
       cx += (mx - cx) * 0.055; cy += (my - cy) * 0.055
-      // Only apply mouse parallax when not scrolled
-      if (window.scrollY < 100) {
-        bg.style.setProperty('--px', `${(cx - 0.5) * -22}px`)
-        bg.style.setProperty('--py', `${(cy - 0.5) * -15}px`)
-      }
+      el.style.transform = `translate(${(cx - 0.5) * -24}px, ${(cy - 0.5) * -16}px)`
       raf = requestAnimationFrame(tick)
     }
     window.addEventListener('mousemove', onMove, { passive: true })
@@ -84,53 +80,57 @@ export default function Hero() {
   }, [])
 
   return (
-    <section ref={heroRef} style={{
+    <section style={{
       position: 'relative', minHeight: '100dvh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden', background: 'var(--color-bg)',
     }}>
-      {/* ── Scroll-zoom atmosphere ── */}
+
+      {/* ── SCROLL ZOOM LAYER — Framer Motion ONLY, no DOM manipulation ── */}
       <motion.div
-        ref={bgRef}
         aria-hidden
         style={{
-          position: 'absolute', inset: '-8%',
+          position: 'absolute', inset: '-10%',
           scale: bgScale,
           opacity: bgOpacityRaw,
           willChange: 'transform, opacity',
+          pointerEvents: 'none',
         }}
       >
-        <motion.div
-          style={{
-            position: 'absolute', inset: 0,
-            filter: bgBlurRaw.get() > 0 ? `blur(${bgBlurRaw}px)` : 'none',
-          }}
-        >
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: [
-              'radial-gradient(ellipse 75% 60% at 50% 45%, rgba(232,104,58,0.09) 0%, transparent 55%)',
-              'radial-gradient(ellipse 40% 50% at 12% 88%, rgba(232,104,58,0.05) 0%, transparent 48%)',
-              'radial-gradient(ellipse 35% 45% at 90% 10%, rgba(232,104,58,0.04) 0%, transparent 45%)',
-            ].join(','),
-          }} />
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: [
-              'linear-gradient(rgba(240,237,232,0.022) 1px, transparent 1px)',
-              'linear-gradient(90deg, rgba(240,237,232,0.022) 1px, transparent 1px)',
-            ].join(','),
-            backgroundSize: '88px 88px',
-            maskImage: 'radial-gradient(ellipse 70% 70% at 50% 50%, black 15%, transparent 80%)',
-          }} />
-        </motion.div>
+        {/* Atmospheric gradients */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.75) 100%)',
+          background: [
+            'radial-gradient(ellipse 75% 60% at 50% 45%, rgba(232,104,58,0.10) 0%, transparent 55%)',
+            'radial-gradient(ellipse 40% 50% at 12% 88%, rgba(232,104,58,0.06) 0%, transparent 48%)',
+            'radial-gradient(ellipse 35% 45% at 90% 10%, rgba(232,104,58,0.05) 0%, transparent 45%)',
+          ].join(','),
+        }} />
+        {/* Subtle grid */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: [
+            'linear-gradient(rgba(240,237,232,0.024) 1px, transparent 1px)',
+            'linear-gradient(90deg, rgba(240,237,232,0.024) 1px, transparent 1px)',
+          ].join(','),
+          backgroundSize: '88px 88px',
+          maskImage: 'radial-gradient(ellipse 70% 70% at 50% 50%, black 15%, transparent 80%)',
+        }} />
+        {/* Vignette */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.78) 100%)',
         }} />
       </motion.div>
 
-      {/* ── Letterbox bars ── */}
+      {/* ── MOUSE PARALLAX LAYER — CSS transform only, no Framer Motion ── */}
+      <div ref={parallaxRef} aria-hidden style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        willChange: 'transform',
+        transition: 'transform 0.6s cubic-bezier(0.16,1,0.3,1)',
+      }} />
+
+      {/* ── Cinematic letterbox bars ── */}
       <motion.div aria-hidden initial={{ height:0 }} animate={{ height:'clamp(26px,4.5vh,54px)' }}
         transition={{ duration:0.9, ease:EASE, delay:0.1 }}
         style={{ position:'absolute',top:0,left:0,right:0,background:'#000',zIndex:2 }}/>
@@ -138,7 +138,7 @@ export default function Hero() {
         transition={{ duration:0.9, ease:EASE, delay:0.1 }}
         style={{ position:'absolute',bottom:0,left:0,right:0,background:'#000',zIndex:2 }}/>
 
-      {/* ── HUD labels ── */}
+      {/* ── HUD ── */}
       <motion.div aria-hidden initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.0, duration:0.5 }}
         style={{ position:'absolute',top:'clamp(6px,1.1vh,13px)',left:'1.5rem',zIndex:3,
           fontFamily:'"JetBrains Mono","Courier New",monospace',
@@ -148,14 +148,14 @@ export default function Hero() {
       <motion.div aria-hidden initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:1.2, duration:0.5 }}
         style={{ position:'absolute',top:'clamp(6px,1.1vh,13px)',right:'1.5rem',zIndex:3,
           fontFamily:'"JetBrains Mono","Courier New",monospace',
-          fontSize:9,letterSpacing:'0.08em',color:'rgba(232,104,58,0.55)',
+          fontSize:9,letterSpacing:'0.08em',color:'rgba(232,104,58,0.6)',
           display:'flex',alignItems:'center',gap:8 }}>
         <span>FRAME {frameCount}</span>
         <span style={{ color:'rgba(232,104,58,0.25)' }}>·</span>
         <span>24fps</span>
       </motion.div>
 
-      {/* ── Corner brackets ── */}
+      {/* Corner brackets */}
       {(['tl','tr','bl','br'] as const).map(c => (
         <div key={c} aria-hidden style={{
           position:'absolute',width:26,height:26,pointerEvents:'none',zIndex:3,opacity:0.2,
@@ -166,7 +166,7 @@ export default function Hero() {
         }}/>
       ))}
 
-      {/* ── MAIN CONTENT (fades on scroll) ── */}
+      {/* ── MAIN CONTENT — scroll zoom (scale+fade) ── */}
       <motion.div
         variants={container}
         initial="hidden"
@@ -177,11 +177,13 @@ export default function Hero() {
           alignItems:'center',textAlign:'center',
           padding:'clamp(9rem,16vh,12rem) clamp(1rem,5vw,4rem) clamp(5rem,10vh,8rem)',
           width:'100%',maxWidth:1440,
-          y: contentY,
+          scale: contentScale,
           opacity: contentOpacityRaw,
+          y: contentY,
+          willChange: 'transform, opacity',
         }}
       >
-        {/* Mark + location */}
+        {/* Mark */}
         <motion.div variants={item} style={{ display:'flex',alignItems:'center',gap:14,marginBottom:'2.5rem' }}>
           <ApertureMark size={30} animate />
           <span style={{ fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--color-text-tertiary)' }}>
@@ -196,10 +198,15 @@ export default function Hero() {
           color:'rgba(232,104,58,0.5)',marginBottom:'1.5rem',
         }}>FADE IN.</motion.div>
 
-        {/* ── HEADLINE — fixed descender clipping ── */}
+        {/* ── HEADLINE — proper descender room ── */}
         <div style={{ marginBottom:'2.5rem' }}>
-          {/* paddingBottom gives room for descenders; negative margin compensates */}
-          <div style={{ overflow:'hidden', paddingBottom:'0.22em', marginBottom:'-0.22em' }}>
+          {/*
+            paddingBottom gives visual space for descenders (y in Creativity, p in Applied).
+            At 185px, Playfair Display descenders extend ~35-40px below baseline.
+            0.25em at 185px ≈ 46px — plenty of room.
+            The outer div does NOT clip — descenders show freely.
+          */}
+          <div>
             <motion.h1
               initial={{ y:'115%', opacity:0 }}
               animate={{ y:0, opacity:1 }}
@@ -207,13 +214,14 @@ export default function Hero() {
               style={{
                 fontFamily:'var(--font-playfair,"Playfair Display",Georgia,serif)',
                 fontSize:'clamp(62px,13.5vw,185px)',
-                fontWeight:400,lineHeight:0.9,letterSpacing:'-0.045em',
+                fontWeight:400,lineHeight:1.0,letterSpacing:'-0.045em',
                 color:'var(--color-text-primary)',
                 margin:0,display:'block',
+                paddingBottom:'0.08em', // breathing room for descender
               }}
             >Creativity.</motion.h1>
           </div>
-          <div style={{ overflow:'hidden', paddingBottom:'0.22em', marginBottom:'-0.22em' }}>
+          <div>
             <motion.h2
               initial={{ y:'115%', opacity:0 }}
               animate={{ y:0, opacity:1 }}
@@ -221,9 +229,10 @@ export default function Hero() {
               style={{
                 fontFamily:'var(--font-playfair,"Playfair Display",Georgia,serif)',
                 fontSize:'clamp(62px,13.5vw,185px)',
-                fontWeight:400,fontStyle:'italic',lineHeight:0.9,letterSpacing:'-0.045em',
+                fontWeight:400,fontStyle:'italic',lineHeight:1.0,letterSpacing:'-0.045em',
                 color:'var(--color-accent)',
                 margin:0,display:'block',
+                paddingBottom:'0.15em', // more room for italic descenders (pp)
               }}
             >Applied.</motion.h2>
           </div>
@@ -240,7 +249,7 @@ export default function Hero() {
           </em>
         </motion.p>
 
-        {/* ── Role cycling — FIXED: flex + AnimatePresence ── */}
+        {/* Role cycling — centered via flex */}
         <motion.div variants={item} style={{
           height:22,overflow:'hidden',position:'relative',
           width:'100%',marginBottom:'3rem',
@@ -263,7 +272,7 @@ export default function Hero() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Credential strip */}
+        {/* Credentials */}
         <motion.div variants={item} style={{ marginBottom:'3rem' }}>
           <div className="cred-strip">
             {CREDS.map(c=>(

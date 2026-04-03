@@ -96,6 +96,40 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" />
         <meta name="color-scheme" content="dark" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Person",
+                "@id": "https://niddhish.com/#person",
+                "name": "Niddhish Puuzhakkal",
+                "url": "https://niddhish.com",
+                "image": "https://niddhish.com/niddhish-photo.jpg",
+                "jobTitle": ["Film Director", "Psychologist", "Author", "Brand Strategist"],
+                "worksFor": { "@type": "Organization", "name": "Light Seeker Films", "url": "https://niddhish.com" },
+                "address": { "@type": "PostalAddress", "addressLocality": "Mumbai", "addressCountry": "IN" },
+                "sameAs": [
+                  "https://vimeo.com/niddhish",
+                  "https://linkedin.com/in/niddhish",
+                  "https://instagram.com/niddhishp",
+                  "https://twitter.com/niddhishp"
+                ],
+                "knowsAbout": ["Film Direction", "Behavioral Psychology", "Brand Strategy", "Creative Technology", "TVC Production"]
+              },
+              {
+                "@type": "WebSite",
+                "@id": "https://niddhish.com/#website",
+                "url": "https://niddhish.com",
+                "name": "Niddhish Puuzhakkal — Creativity. Applied.",
+                "description": "Filmmaker, psychologist, author, and creative strategist. Founder, Light Seeker Films.",
+                "publisher": { "@id": "https://niddhish.com/#person" },
+                "inLanguage": "en-IN"
+              }
+            ]
+          })}}
+        />
       </head>
       <body>
         <GrainOverlay />
