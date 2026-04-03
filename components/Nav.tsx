@@ -7,6 +7,8 @@ import ApertureMark from './ApertureMark'
 
 const navItems = [
   { label: 'Work',        href: '/work' },
+  { label: 'Blog',        href: '/blog' },
+  { label: 'Press',       href: '/press' },
   { label: 'About',       href: '/about' },
   { label: 'Collaborate', href: '/collaborate' },
 ]

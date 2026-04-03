@@ -44,6 +44,69 @@ export default function WorkReel() {
 
   return (
     <section style={{ background: 'var(--color-bg)', paddingTop: '5rem' }}>
+      {/* ── Films in Production ── */}
+      <div style={{
+        padding:'3rem clamp(1.25rem,5vw,3.5rem)',
+        borderBottom:'0.5px solid var(--color-border)',
+        background:'linear-gradient(135deg,rgba(232,104,58,0.06) 0%,transparent 60%)',
+        marginBottom:0,
+      }} data-reveal>
+        <div style={{
+          fontFamily:'"JetBrains Mono","Courier New",monospace',
+          fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',
+          color:'rgba(232,104,58,0.55)',marginBottom:'1.25rem',
+        }}>NOW IN POST — FEATURE FILMS</div>
+        <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem' }}>
+          {[
+            {
+              title:'EGO',
+              sub:'Bollywood Feature Film',
+              cast:'Arshad Warsi · Juhi Chawla · Divya Dutta · Gauhar Khan',
+              status:'Preparing for Release',
+              statusColor:'rgba(232,104,58,1)',
+            },
+            {
+              title:'Palkon Pe',
+              sub:'Feature Film',
+              cast:'Completing Post-Production',
+              status:'In Post',
+              statusColor:'rgba(240,237,232,0.5)',
+            },
+          ].map(film=>(
+            <div key={film.title} style={{
+              padding:'1.5rem',
+              border:'0.5px solid var(--color-border-mid)',
+              background:'rgba(10,10,10,0.6)',
+              backdropFilter:'blur(4px)',
+              position:'relative',
+              overflow:'hidden',
+            }}>
+              <div style={{
+                position:'absolute',top:0,left:0,width:3,height:'100%',
+                background:'var(--color-accent)',
+              }}/>
+              <div style={{ paddingLeft:'1rem' }}>
+                <div style={{ display:'flex',alignItems:'center',gap:'0.75rem',marginBottom:'0.5rem',flexWrap:'wrap' }}>
+                  <span style={{
+                    fontFamily:'var(--font-playfair,serif)',
+                    fontSize:22,fontWeight:400,color:'var(--color-text-primary)',
+                    letterSpacing:'-0.01em',
+                  }}>{film.title}</span>
+                  <span style={{
+                    fontSize:9,letterSpacing:'0.1em',textTransform:'uppercase',
+                    color:film.statusColor,
+                    border:`0.5px solid ${film.statusColor}`,
+                    padding:'2px 8px',borderRadius:1,
+                  }}>{film.status}</span>
+                </div>
+                <p style={{ fontSize:12,color:'var(--color-text-tertiary)',letterSpacing:'0.04em',textTransform:'uppercase',marginBottom:'0.4rem' }}>{film.sub}</p>
+                <p style={{ fontSize:13,color:'var(--color-text-secondary)',lineHeight:1.5 }}>{film.cast}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Section header */}
       <div
         style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '2.5rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}

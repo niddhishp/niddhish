@@ -29,20 +29,86 @@ const CREDS = [
 export default function AboutPage() {
   return (
     <div style={{ minHeight:'100dvh', background:'var(--color-bg)', paddingTop:'8rem' }}>
-      {/* Hero */}
-      <div style={{ padding:'0 clamp(1.25rem,5vw,3.5rem)', marginBottom:'6rem', maxWidth:1280 }}>
-        <div style={{ marginBottom:'2rem' }}><ApertureMark size={44} /></div>
-        <span className="text-label" style={{ display:'block', marginBottom:'1rem' }}>About</span>
-        <h1 className="text-display-md" style={{ color:'var(--color-text-primary)', maxWidth:800, marginBottom:'2rem' }}>
-          Not a multi-hyphenate.{' '}
-          <em style={{ color:'var(--color-accent)' }}>One discipline, six surfaces.</em>
-        </h1>
-        <p style={{ fontSize:17, lineHeight:1.78, color:'var(--color-text-secondary)', maxWidth:640, marginBottom:'1.5rem' }}>
-          Every discipline I work in — film, psychology, brand strategy, technology, writing, PR — is the same action applied to a different surface. The action is: take a complex human problem and solve it with creative intelligence.
-        </p>
-        <p style={{ fontSize:17, lineHeight:1.78, color:'var(--color-text-secondary)', maxWidth:640 }}>
-          I studied psychology before I studied filmmaking. That wasn&apos;t accidental. Understanding why people feel what they feel, and how narrative structure manipulates emotion at a neurological level — that is the methodology behind 200+ commercials, 3 films, 3 books, and 20 years of work.
-        </p>
+      {/* Hero — photo + intro side by side */}
+      <div style={{
+        padding:'0 clamp(1.25rem,5vw,3.5rem)',
+        marginBottom:'5rem',
+        display:'grid',
+        gridTemplateColumns:'340px 1fr',
+        gap:'5rem',
+        alignItems:'start',
+        maxWidth:1280,
+      }}>
+        {/* Photo */}
+        <div style={{ position:'sticky', top:'7rem' }}>
+          <div style={{
+            aspectRatio:'3/4',
+            background:'var(--color-surface-2)',
+            border:'0.5px solid var(--color-border)',
+            position:'relative',
+            overflow:'hidden',
+          }}>
+            {/* Placeholder — replace with actual photo via next/image */}
+            <div style={{
+              position:'absolute', inset:0,
+              background:'linear-gradient(135deg,#141414 0%,#0a0a0a 100%)',
+              display:'flex', flexDirection:'column',
+              alignItems:'center', justifyContent:'center',
+              gap:'1rem',
+            }}>
+              <ApertureMark size={64} />
+              <span style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)' }}>
+                Niddhish Puuzhakkal
+              </span>
+              <span style={{ fontSize:10, color:'rgba(240,237,232,0.2)', textAlign:'center', maxWidth:200, lineHeight:1.5 }}>
+                Replace with: /public/niddhish-photo.jpg
+              </span>
+            </div>
+          </div>
+          <div style={{ marginTop:'1.5rem' }}>
+            <p style={{ fontSize:12,color:'var(--color-text-tertiary)',letterSpacing:'0.04em',lineHeight:1.6 }}>
+              Mumbai, India · niddhish@lightseekermedia.com
+            </p>
+            <div style={{ display:'flex', gap:'1rem', marginTop:'1rem', flexWrap:'wrap' }}>
+              {[
+                { label:'Vimeo',    href:'https://vimeo.com/niddhish' },
+                { label:'LinkedIn', href:'https://linkedin.com/in/niddhish' },
+                { label:'Instagram',href:'https://instagram.com/niddhishp' },
+              ].map(s=>(
+                <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" style={{
+                  fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase',
+                  color:'var(--color-text-tertiary)',textDecoration:'none',transition:'color 0.2s',
+                }}
+                  onMouseEnter={e=>((e.target as HTMLElement).style.color='var(--color-accent)')}
+                  onMouseLeave={e=>((e.target as HTMLElement).style.color='var(--color-text-tertiary)')}>
+                  {s.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Intro */}
+        <div>
+          <div style={{
+            fontFamily:'"JetBrains Mono","Courier New",monospace',
+            fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',
+            color:'rgba(232,104,58,0.5)',marginBottom:'1rem',
+          }}>SCENE 06 — THE DIRECTOR</div>
+          <span className="text-label" style={{ display:'block', marginBottom:'0.75rem' }}>About</span>
+          <h1 className="text-display-md" style={{
+            color:'var(--color-text-primary)',maxWidth:800,marginBottom:'2rem',
+          }}>
+            Not a multi-hyphenate.{' '}
+            <em style={{ color:'var(--color-accent)' }}>One discipline, six surfaces.</em>
+          </h1>
+          <p style={{ fontSize:17,lineHeight:1.78,color:'var(--color-text-secondary)',maxWidth:640,marginBottom:'1.5rem' }}>
+            Every discipline I work in — film, psychology, brand strategy, technology, writing, PR — is the same action applied to a different surface. The action is: take a complex human problem and solve it with creative intelligence.
+          </p>
+          <p style={{ fontSize:17,lineHeight:1.78,color:'var(--color-text-secondary)',maxWidth:640 }}>
+            I studied psychology before I studied filmmaking. That wasn&apos;t accidental. Understanding why people feel what they feel, and how narrative structure manipulates emotion at a neurological level — that is the methodology behind 200+ commercials, 3 films, 3 books, and 20 years of work.
+          </p>
+        </div>
       </div>
 
       {/* The story beat */}
@@ -104,7 +170,7 @@ export default function AboutPage() {
         <Link href="/work" className="btn-ghost">View Work</Link>
       </div>
 
-      <style>{`@media(max-width:640px){div > div:nth-child(5) > div{grid-template-columns:1fr!important;}}`}</style>
+      <style>{`@media(max-width:900px){.about-grid{grid-template-columns:1fr!important;} .about-photo{position:static!important;}} @media(max-width:640px){div > div:nth-child(5) > div{grid-template-columns:1fr!important;}}`}</style>
     </div>
   )
 }

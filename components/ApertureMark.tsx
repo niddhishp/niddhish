@@ -11,7 +11,7 @@ interface ApertureMarkProps {
 
 export default function ApertureMark({
   size = 48,
-  color = '#d85a30',
+  color = '#e8683a',
   animate = false,
   className = '',
 }: ApertureMarkProps) {
