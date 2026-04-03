@@ -78,9 +78,7 @@ export default function AboutPage() {
                 <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" style={{
                   fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase',
                   color:'var(--color-text-tertiary)',textDecoration:'none',transition:'color 0.2s',
-                }}
-                  onMouseEnter={e=>((e.target as HTMLElement).style.color='var(--color-accent)')}
-                  onMouseLeave={e=>((e.target as HTMLElement).style.color='var(--color-text-tertiary)')}>
+                }}>
                   {s.label}
                 </a>
               ))}
