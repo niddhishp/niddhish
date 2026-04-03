@@ -115,8 +115,6 @@ export default function PressPage() {
                 textDecoration: 'none',
                 transition: 'background 0.2s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-1)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-bg)')}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <span style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
@@ -154,8 +152,6 @@ export default function PressPage() {
                 textDecoration: 'none',
                 transition: 'padding-left 0.3s',
               }}
-              onMouseEnter={e => (e.currentTarget.style.paddingLeft = '0.75rem')}
-              onMouseLeave={e => (e.currentTarget.style.paddingLeft = '0')}
             >
               <div>
                 <p style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem' }}>

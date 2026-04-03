@@ -62,7 +62,7 @@ export default function Invite() {
             color: 'rgba(216,90,48,0.4)', marginBottom: '2.5rem',
           }}
         >
-          SCENE 05 — THE BRIEF
+          SCENE 06 — THE BRIEF
         </motion.div>
 
         {/* Aperture mark */}

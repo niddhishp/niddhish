@@ -39,7 +39,7 @@ export default function Testimony() {
           fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
           color: 'rgba(216,90,48,0.35)', marginBottom: '2rem',
         }}>
-          SCENE 04 — THE CRITICS
+          SCENE 05 — THE CRITICS
         </div>
         <span className="accent-line" style={{ marginBottom:'2rem' }}/>
         <blockquote style={{

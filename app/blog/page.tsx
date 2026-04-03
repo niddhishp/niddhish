@@ -129,8 +129,6 @@ export default function BlogPage() {
               transition: 'background 0.25s',
               cursor: 'pointer',
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-1)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
               <span style={{
