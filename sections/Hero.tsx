@@ -28,13 +28,17 @@ function useFrameCounter() {
   return frame.toString().padStart(4, '0')
 }
 
-const container = {
+import type { Variants } from 'framer-motion'
+
+const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number]
+
+const container: Variants = {
   hidden: {},
   show: { transition: { staggerChildren: 0.1 } },
 }
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 20 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] } },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.75, ease: EASE } },
 }
 
 export default function Hero() {

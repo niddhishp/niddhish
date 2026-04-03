@@ -28,11 +28,13 @@ const FILMS: Film[] = [
 
 const CLIENTS = ['Nike','Harley Davidson','Adidas','Uber','Maruti Suzuki','LG','Tata Motors','L\'Oréal','Mastercard','Zomato','Times of India','Westside','HP','Paytm','Big Basket','Housing.com','Vivo','Abbott','Cipla','Bandhan','Skoda','Honda','Toyota','Levi\'s','ONE Card']
 
-const cardVariants = {
+import type { Variants } from 'framer-motion'
+
+const cardVariants: Variants = {
   hidden: { opacity: 0, y: 32 },
   show:   (i: number) => ({
     opacity: 1, y: 0,
-    transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: i * 0.08 },
+    transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: i * 0.08 },
   }),
 }
 
