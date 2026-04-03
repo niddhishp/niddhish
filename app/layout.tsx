@@ -4,6 +4,8 @@ import '../styles/globals.css'
 import Nav from '@/components/Nav'
 import GrainOverlay from '@/components/GrainOverlay'
 import Footer from '@/components/Footer'
+import CustomCursor from '@/components/CustomCursor'
+import SmoothScroll from '@/components/SmoothScroll'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -97,6 +99,8 @@ export default function RootLayout({
       </head>
       <body>
         <GrainOverlay />
+        <CustomCursor />
+        <SmoothScroll />
         <Nav />
         <main>{children}</main>
         <Footer />
