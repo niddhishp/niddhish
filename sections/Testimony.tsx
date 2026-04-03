@@ -20,6 +20,13 @@ export default function Testimony() {
     <section style={{ background:'var(--color-bg)', padding:'6rem clamp(1.25rem,5vw,3.5rem)', borderTop:'0.5px solid var(--color-border)' }}>
       {/* Feature quote */}
       <div data-reveal style={{ marginBottom:'5rem', maxWidth:860 }}>
+        <div style={{
+          fontFamily: '"JetBrains Mono","Courier New",monospace',
+          fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: 'rgba(216,90,48,0.35)', marginBottom: '2rem',
+        }}>
+          SCENE 04 — THE CRITICS
+        </div>
         <span className="accent-line" style={{ marginBottom:'2rem' }}/>
         <blockquote style={{
           fontFamily:'var(--font-playfair,serif)',

@@ -22,6 +22,13 @@ export default function Depth() {
     <section style={{ background: 'var(--color-bg-light)', padding: '6rem clamp(1.25rem, 5vw, 3.5rem)' }}>
       {/* Intro */}
       <div data-reveal style={{ marginBottom: '3.5rem' }}>
+        <div style={{
+          fontFamily: '"JetBrains Mono","Courier New",monospace',
+          fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: 'rgba(216,90,48,0.35)', marginBottom: '0.75rem',
+        }}>
+          SCENE 03 — THE METHOD
+        </div>
         <span className="text-label" style={{ display:'block', marginBottom:'0.75rem', color:'var(--color-text-on-light-muted)' }}>
           One discipline. Six surfaces.
         </span>
