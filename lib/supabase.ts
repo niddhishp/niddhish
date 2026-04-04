@@ -1,18 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Public client (read-only safe operations)
+const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  || ''
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+
+// Public client (anon key — used client-side)
 export function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  return createClient(url, key)
+  if (!SUPABASE_URL || !SUPABASE_ANON) {
+    throw new Error('Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set in Vercel.')
+  }
+  return createClient(SUPABASE_URL, SUPABASE_ANON)
 }
 
-// Admin client (server-side only — uses service role key)
+// Admin client (service role — server-side only)
 export function getSupabaseAdmin() {
-  const url  = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const key  = process.env.SUPABASE_SERVICE_ROLE_KEY!
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false }
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    throw new Error('Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in Vercel.')
+  }
+  return createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
   })
 }
 

@@ -8,10 +8,10 @@ export const metadata: Metadata = {
 }
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',  href: '/admin' },
-  { label: 'Contacts',   href: '/admin/contacts' },
-  { label: 'Blog Posts', href: '/admin/blog' },
-  { label: 'Films',      href: '/admin/films' },
+  { label: 'Dashboard',  href: '/admin',          icon: '⊞' },
+  { label: 'Contacts',   href: '/admin/contacts',  icon: '✉' },
+  { label: 'Blog Posts', href: '/admin/blog',       icon: '✎' },
+  { label: 'Films',      href: '/admin/films',      icon: '▶' },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -48,14 +48,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {NAV_ITEMS.map(item => (
           <Link key={item.href} href={item.href} style={{
-            display: 'block', padding: '0.625rem 0.875rem',
+            display: 'flex', alignItems: 'center', gap: 8, padding: '0.625rem 0.875rem',
             borderRadius: 2,
             fontSize: 13, letterSpacing: '0.02em',
             color: 'var(--color-text-secondary)',
             textDecoration: 'none',
             transition: 'background 0.15s, color 0.15s',
-            border: '0.5px solid transparent',
           }}>
+            <span style={{ opacity: 0.5, fontSize: 12 }}>{item.icon}</span>
             {item.label}
           </Link>
         ))}
