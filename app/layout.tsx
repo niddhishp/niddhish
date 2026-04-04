@@ -99,7 +99,14 @@ export default function RootLayout({
         {/* Kill Vercel toolbar / comments overlay on all envs */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
-            var sel = ['vercel-live-feedback', 'vercel-toolbar', '__NEXT_TOOLBAR__', '[data-vercel-toolbar]'];
+            // 1. Prevent browser scroll restoration
+            if ('scrollRestoration' in history) {
+              history.scrollRestoration = 'manual';
+            }
+            // 2. Force scroll to top immediately
+            window.scrollTo(0, 0);
+            // 3. Kill Vercel toolbar overlays
+            var sel = ['vercel-live-feedback', 'vercel-toolbar', '__NEXT_TOOLBAR__'];
             var kill = function() {
               sel.forEach(function(s) {
                 var el = document.querySelector(s) || document.getElementById(s);

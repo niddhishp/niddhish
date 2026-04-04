@@ -39,19 +39,29 @@ function useFrameCounter() {
 
 export default function Hero() {
   const [roleIdx, setRoleIdx] = useState(0)
-  const parallaxRef = useRef<HTMLDivElement>(null) // ONLY for mouse parallax — NOT for Framer Motion
+  const parallaxRef = useRef<HTMLDivElement>(null)
   const frameCount  = useFrameCounter()
+
+  // ── Force scroll to top on mount so scrollY starts at 0 ──────────
+  useEffect(() => {
+    // Instant scroll reset — prevents browser scroll restoration from
+    // leaving scrollY > 0 on mount, which would make content opacity = 0
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    }
+  }, [])
 
   // ── Scroll values ────────────────────────────────────────────────
   const { scrollY } = useScroll()
 
-  // Background: dramatic zoom in + darken
+  // Background: dramatic zoom in + darken (never fully transparent)
   const bgScaleRaw    = useTransform(scrollY, [0, 700], [1, 1.45])
-  const bgOpacityRaw  = useTransform(scrollY, [0, 500], [1, 0.35])
+  const bgOpacityRaw  = useTransform(scrollY, [0, 500], [1, 0.4])
 
-  // Content: scale up slightly + fade (zoom-through effect)
+  // Content: scale up slightly + fade — clamp to 0.01 so it never fully
+  // disappears if scrollY is non-zero on first render
   const contentScaleRaw   = useTransform(scrollY, [0, 400], [1, 1.08])
-  const contentOpacityRaw = useTransform(scrollY, [0, 320], [1, 0])
+  const contentOpacityRaw = useTransform(scrollY, [0, 380], [1, 0.01])
   const contentYRaw       = useTransform(scrollY, [0, 400], [0, -30])
 
   const bgScale       = useSpring(bgScaleRaw,       { stiffness: 60, damping: 18 })
