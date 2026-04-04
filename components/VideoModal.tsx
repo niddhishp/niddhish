@@ -4,14 +4,15 @@ import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface VideoModalProps {
-  videoId: string
+  videoId: string | null
+  source?: 'vimeo' | 'youtube'
   title: string
-  brand: string
-  type: string
+  brand?: string
+  type?: string
   onClose: () => void
 }
 
-export default function VideoModal({ videoId, title, brand, type, onClose }: VideoModalProps) {
+export default function VideoModal({ videoId, source = 'vimeo', title, brand, type, onClose }: VideoModalProps) {
   // Lock scroll
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -26,7 +27,9 @@ export default function VideoModal({ videoId, title, brand, type, onClose }: Vid
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
-  const embedUrl = `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=d85a30&loop=0&transparent=0`
+  const embedUrl = !videoId ? '' : source === 'youtube'
+    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+    : `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=e8683a&loop=0&transparent=0`
 
   return (
     <AnimatePresence>
@@ -182,7 +185,7 @@ export default function VideoModal({ videoId, title, brand, type, onClose }: Vid
 
         {/* Fallback link in case video is private */}
         <motion.a
-          href={`https://vimeo.com/${videoId}`}
+          href={videoId ? (source === 'youtube' ? `https://youtube.com/watch?v=${videoId}` : `https://vimeo.com/${videoId}`) : '#'}
           target="_blank"
           rel="noopener noreferrer"
           initial={{ opacity: 0 }}
