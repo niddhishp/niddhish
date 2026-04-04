@@ -39,16 +39,20 @@ function useFrameCounter() {
 
 export default function Hero() {
   const [roleIdx, setRoleIdx] = useState(0)
+  const [heroVideoUrl, setHeroVideoUrl] = useState('')
   const parallaxRef = useRef<HTMLDivElement>(null)
   const frameCount  = useFrameCounter()
 
-  // ── Force scroll to top on mount so scrollY starts at 0 ──────────
+  // ── Force scroll to top on mount + load hero video from Supabase ──
   useEffect(() => {
-    // Instant scroll reset — prevents browser scroll restoration from
-    // leaving scrollY > 0 on mount, which would make content opacity = 0
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     }
+    // Load hero video URL from site_settings
+    fetch('/api/content')
+      .then(r => r.json())
+      .then(d => { if (d.hero_video_url) setHeroVideoUrl(d.hero_video_url) })
+      .catch(() => {})
   }, [])
 
   // ── Scroll values ────────────────────────────────────────────────
@@ -107,6 +111,28 @@ export default function Hero() {
           pointerEvents: 'none',
         }}
       >
+        {/* Hero background video (if set in admin) */}
+        {heroVideoUrl && (() => {
+          const ytMatch = heroVideoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
+          const vimeoMatch = heroVideoUrl.match(/vimeo\.com\/(\d+)/)
+          if (ytMatch) return (
+            <iframe
+              src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0`}
+              style={{ position:'absolute', inset:'-20%', width:'140%', height:'140%', border:'none', objectFit:'cover', pointerEvents:'none' }}
+              allow="autoplay; fullscreen"
+              title="Hero background"
+            />
+          )
+          if (vimeoMatch) return (
+            <iframe
+              src={`https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&muted=1&loop=1&background=1&controls=0&dnt=1`}
+              style={{ position:'absolute', inset:'-20%', width:'140%', height:'140%', border:'none', objectFit:'cover', pointerEvents:'none' }}
+              allow="autoplay; fullscreen"
+              title="Hero background"
+            />
+          )
+          return null
+        })()}
         {/* Atmospheric gradients */}
         <div style={{
           position: 'absolute', inset: 0,

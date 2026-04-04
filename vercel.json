@@ -9,7 +9,8 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Vercel-Toolbar", "value": "disabled" }
+        { "key": "X-Vercel-Toolbar", "value": "disabled" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
       ]
     }
   ]

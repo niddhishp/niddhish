@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
-import ApertureMark from '@/components/ApertureMark'
+import Image from 'next/image'
 import Link from 'next/link'
+import { getSiteContent } from '@/lib/site-content'
+
+export const revalidate = 60
 
 export const metadata: Metadata = {
   title: 'About',
@@ -26,7 +29,8 @@ const CREDS = [
   { label:'NYFA · ZIMA · Washington Film Institute', sub:'Formal filmmaking training' },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const content = await getSiteContent()
   return (
     <div style={{ minHeight:'100dvh', background:'var(--color-bg)', paddingTop:'8rem' }}>
       {/* Hero — photo + intro side by side */}
@@ -48,22 +52,32 @@ export default function AboutPage() {
             position:'relative',
             overflow:'hidden',
           }}>
-            {/* Placeholder — replace with actual photo via next/image */}
-            <div style={{
-              position:'absolute', inset:0,
-              background:'linear-gradient(135deg,#141414 0%,#0a0a0a 100%)',
-              display:'flex', flexDirection:'column',
-              alignItems:'center', justifyContent:'center',
-              gap:'1rem',
-            }}>
-              <ApertureMark size={64} />
-              <span style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)' }}>
-                Niddhish Puuzhakkal
-              </span>
-              <span style={{ fontSize:10, color:'rgba(240,237,232,0.2)', textAlign:'center', maxWidth:200, lineHeight:1.5 }}>
-                Replace with: /public/niddhish-photo.jpg
-              </span>
-            </div>
+            {/* Director portrait — loaded from Supabase site_settings */}
+            {content.about_photo_url ? (
+              <Image
+                src={content.about_photo_url}
+                alt={content.about_name}
+                fill
+                sizes="340px"
+                style={{ objectFit: 'cover', objectPosition: 'top' }}
+                priority
+                unoptimized
+              />
+            ) : (
+              <div style={{
+                position:'absolute', inset:0,
+                background:'linear-gradient(135deg,#141414 0%,#0a0a0a 100%)',
+                display:'flex', flexDirection:'column',
+                alignItems:'center', justifyContent:'center', gap:'1rem',
+              }}>
+                <span style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)' }}>
+                  Niddhish Puuzhakkal
+                </span>
+                <span style={{ fontSize:10, color:'rgba(240,237,232,0.2)', textAlign:'center', maxWidth:200, lineHeight:1.5 }}>
+                  Upload portrait in Admin → About Page
+                </span>
+              </div>
+            )}
           </div>
           <div style={{ marginTop:'1.5rem' }}>
             <p style={{ fontSize:12,color:'var(--color-text-tertiary)',letterSpacing:'0.04em',lineHeight:1.6 }}>

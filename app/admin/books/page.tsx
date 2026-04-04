@@ -1,4 +1,5 @@
 'use client'
+import ImageUpload from '@/components/ImageUpload'
 import { useState } from 'react'
 
 const INITIAL_BOOKS = [
@@ -44,17 +45,26 @@ export default function AdminBooks() {
             <div><label style={lbl}>ISBN</label><input value={editing.isbn||''} onChange={e=>setEditing(p=>({...p,isbn:e.target.value}))} style={inp} placeholder="978-..."/></div>
           </div>
           <div><label style={lbl}>Synopsis</label><textarea value={editing.synopsis||''} onChange={e=>setEditing(p=>({...p,synopsis:e.target.value}))} rows={5} style={{...inp,resize:'vertical' as const,lineHeight:1.7}} placeholder="Book description..."/></div>
-          <div><label style={lbl}>Book Cover URL</label><input value={editing.coverUrl||''} onChange={e=>setEditing(p=>({...p,coverUrl:e.target.value}))} style={inp} placeholder="https://... or leave blank"/></div>
+          <div>
+            <ImageUpload
+              value={editing.coverUrl||''}
+              onChange={v=>setEditing(p=>({...p,coverUrl:v}))}
+              label="Book Cover"
+              hint="Upload from your computer or paste a URL. Portrait aspect ratio (2:3) works best."
+              aspect="2/3"
+              bucket="books"
+            />
+          </div>
           <div><label style={lbl}>Amazon / Buy Link</label><input value={editing.amazonUrl||''} onChange={e=>setEditing(p=>({...p,amazonUrl:e.target.value}))} style={inp} placeholder="https://amzn.in/..."/></div>
           <button onClick={save} className="btn-primary" style={{ alignSelf:'flex-start' }}>{view==='new' ? 'Add Book' : 'Save Changes'}</button>
         </div>
         {editing.coverUrl ? (
           <div style={{ border:'0.5px solid var(--color-border)', overflow:'hidden', position:'sticky', top:'1rem' }}>
-            <img src={editing.coverUrl} alt="cover" style={{ width:'100%', aspectRatio:'2/3', objectFit:'cover', display:'block' }}/>
+            <img src={editing.coverUrl} alt="cover preview" style={{ width:'100%', aspectRatio:'2/3', objectFit:'cover', display:'block' }}/>
           </div>
         ) : (
           <div style={{ border:'0.5px dashed var(--color-border)', aspectRatio:'2/3', display:'flex', alignItems:'center', justifyContent:'center', position:'sticky', top:'1rem' }}>
-            <p style={{ fontSize:12, color:'var(--color-text-tertiary)', textAlign:'center', padding:'1rem' }}>Cover image<br/>appears here</p>
+            <p style={{ fontSize:12, color:'var(--color-text-tertiary)', textAlign:'center', padding:'1rem' }}>Cover preview</p>
           </div>
         )}
       </div>

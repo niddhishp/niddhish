@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Image from 'next/image'
+import ImageUpload from '@/components/ImageUpload'
 import { FEATURE_FILMS } from '@/lib/videos'
 
 type Status = 'release' | 'post' | 'production'
@@ -61,7 +62,16 @@ export default function AdminFilmsPage() {
             <div><label style={lbl}>Tagline</label><input value={editing.tagline} onChange={upd('tagline')} style={inp} placeholder="One line about the film..."/></div>
             <div><label style={lbl}>Synopsis</label><textarea value={editing.synopsis} onChange={upd('synopsis')} rows={5} style={{...inp,resize:'vertical' as const,lineHeight:1.7}} placeholder="Film synopsis..."/></div>
             <div><label style={lbl}>Cast (comma separated)</label><input value={editing.cast} onChange={upd('cast')} style={inp} placeholder="Arshad Warsi, Juhi Chawla..."/></div>
-            <div><label style={lbl}>Film Poster URL</label><input value={editing.posterUrl||''} onChange={e=>setEditing(p=>({...p,posterUrl:e.target.value||null}))} style={inp} placeholder="https://... (leave blank if no poster yet)"/></div>
+            <div>
+              <ImageUpload
+                value={editing.posterUrl||''}
+                onChange={v=>setEditing(p=>({...p,posterUrl:v||null}))}
+                label="Film Poster"
+                hint="Upload from computer or paste URL. Portrait (2:3) aspect ratio."
+                aspect="2/3"
+                bucket="posters"
+              />
+            </div>
             <button onClick={()=>{ isNew ? setFilms(f=>[...f,{...editing,slug:editing.title.toLowerCase().replace(/\s+/g,'-')}]) : setFilms(f=>f.map(x=>x.slug===editing.slug?{...editing}:x)); setView('list') }} className="btn-primary" style={{ alignSelf:'flex-start' }}>{isNew ? 'Add Film' : 'Save Changes'}</button>
           </div>
           <div style={{ position:'sticky', top:'1rem' }}>

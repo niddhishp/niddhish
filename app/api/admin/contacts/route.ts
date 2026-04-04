@@ -11,7 +11,7 @@ export async function GET() {
     if (error) throw error
     return NextResponse.json({ contacts: data })
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
+    const msg = typeof err === "object" && err !== null && "message" in err ? (err as {message:string}).message : String(err)
     console.error('Admin contacts GET:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }

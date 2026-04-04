@@ -10,7 +10,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: typeof err === "object" && err !== null && "message" in err ? (err as {message:string}).message : String(err) }, { status: 500 })
   }
 }
 
@@ -22,6 +22,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: typeof err === "object" && err !== null && "message" in err ? (err as {message:string}).message : String(err) }, { status: 500 })
   }
 }

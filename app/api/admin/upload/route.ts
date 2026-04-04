@@ -27,6 +27,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ url: publicUrl, path: data.path })
   } catch (err: unknown) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: typeof err === "object" && err !== null && "message" in err ? (err as {message:string}).message : String(err) }, { status: 500 })
   }
 }

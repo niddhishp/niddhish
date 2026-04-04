@@ -64,7 +64,7 @@ export default function WorkReel() {
         </div>
         <div style={{ textAlign: 'right' }}>
           <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: '0.5rem' }}>
-            {VIDEOS.length} films across {Object.keys(CATEGORY_LABELS).length} categories
+            Automobile · Fashion · Narrative · Humour · Offbeat · AI
           </p>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function WorkReel() {
       {/* See All Work */}
       <div style={{ padding:'2.5rem clamp(1.25rem,5vw,3.5rem)', display:'flex', justifyContent:'center', borderTop:'0.5px solid var(--color-border)' }}>
         <Link href="/work" className="btn-primary" style={{ fontSize:13, padding:'0.875rem 2.5rem', display:'inline-flex', alignItems:'center', gap:8, textDecoration:'none' }}>
-          See All {VIDEOS.length} Films
+          See All Films
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <path d="M1 6.5h11M6.5 1l5.5 5.5-5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
