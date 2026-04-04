@@ -96,6 +96,24 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" />
         <meta name="color-scheme" content="dark" />
+        {/* Kill Vercel toolbar / comments overlay on all envs */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var sel = ['vercel-live-feedback', 'vercel-toolbar', '__NEXT_TOOLBAR__', '[data-vercel-toolbar]'];
+            var kill = function() {
+              sel.forEach(function(s) {
+                var el = document.querySelector(s) || document.getElementById(s);
+                if (el) el.remove();
+              });
+              document.querySelectorAll('iframe').forEach(function(f) {
+                if ((f.src||'').includes('vercel') || (f.id||'').includes('vercel')) f.remove();
+              });
+            };
+            kill();
+            var obs = new MutationObserver(kill);
+            obs.observe(document.documentElement, { childList: true, subtree: true });
+          })();
+        ` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
