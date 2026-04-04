@@ -1,87 +1,136 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function AdminHeroPage() {
-  const [url, setUrl] = useState('')
-  const [tagline, setTagline] = useState('Creativity. Applied.')
-  const [subtitle, setSubtitle] = useState('Behavioral filmmaking. Creative strategy. Technology built to think.')
+  const [settings, setSettings] = useState({
+    hero_video_url: '',
+    hero_tagline: 'Creativity.',
+    hero_tagline_accent: 'Applied.',
+    hero_subtitle: 'Behavioral filmmaking. Creative strategy. Technology built to think.',
+    hero_sub_italic: 'Where psychology meets cinema.',
+  })
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(r=>r.json())
+      .then(d => {
+        if (d.settings) setSettings(s => ({ ...s, ...d.settings }))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed')
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    } catch(e) { setError(e instanceof Error ? e.message : 'Save failed') }
+    finally { setSaving(false) }
+  }
 
   const thumbFromUrl = (u: string) => {
-    const vimeoM = u.match(/vimeo\.com\/(\d+)/)
-    const ytM = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
-    if (vimeoM) return `https://vimeocdn.com/video/${vimeoM[1]}_640.jpg`
-    if (ytM) return `https://i.ytimg.com/vi/${ytM[1]}/maxresdefault.jpg`
+    const vimeo = u.match(/vimeo\.com\/(\d+)/)
+    const yt = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
+    if (yt) return `https://i.ytimg.com/vi/${yt[1]}/maxresdefault.jpg`
     return null
   }
-  const thumb = thumbFromUrl(url)
+  const thumb = thumbFromUrl(settings.hero_video_url)
+
+  if (loading) return <div style={{ padding:'3rem', color:'var(--color-text-tertiary)', fontSize:14 }}>Loading…</div>
 
   return (
     <div>
       <div style={{ marginBottom:'2.5rem' }}>
-        <h1 style={{ fontFamily:'var(--font-playfair,serif)', fontSize:28, fontWeight:400, color:'var(--color-text-primary)', marginBottom:'0.35rem', letterSpacing:'-0.02em' }}>Hero Video</h1>
-        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Controls the full-screen background video and text on the homepage.</p>
+        <h1 style={{ fontFamily:'var(--font-playfair,serif)', fontSize:28, fontWeight:400, color:'var(--color-text-primary)', marginBottom:'0.35rem', letterSpacing:'-0.02em' }}>Hero Section</h1>
+        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Controls the full-screen background and text on the homepage.</p>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:'3rem', alignItems:'start' }}>
+      {error && <div style={{ padding:'0.75rem 1rem', background:'rgba(255,80,80,0.08)', border:'0.5px solid rgba(255,80,80,0.3)', color:'#ff6060', fontSize:13, marginBottom:'1.5rem' }}>{error}</div>}
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:'3rem', alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
-          {/* Video URL */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={{ fontSize:12, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.5rem' }}>Background Video</h2>
-            <label style={labelStyle}>YouTube or Vimeo URL</label>
-            <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://vimeo.com/123456789" style={inputStyle} />
-            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.5rem' }}>Paste any YouTube or Vimeo link — the video plays muted and looped as background.</p>
+            <h2 style={sh}>Background Video</h2>
+            <div style={{ marginBottom:'1rem' }}>
+              <label style={lbl}>YouTube or Vimeo URL</label>
+              <input
+                value={settings.hero_video_url}
+                onChange={e=>setSettings(s=>({...s,hero_video_url:e.target.value}))}
+                placeholder="https://vimeo.com/123456789 or https://youtube.com/watch?v=..."
+                style={inp}
+              />
+              <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.4rem' }}>Paste a Vimeo or YouTube link. The video plays muted and looped as the hero background.</p>
+            </div>
             {thumb && (
-              <div style={{ marginTop:'1rem', position:'relative', aspectRatio:'16/9', background:'#111', overflow:'hidden' }}>
-                <img src={thumb} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              <div style={{ position:'relative', aspectRatio:'16/9', overflow:'hidden', background:'#111', marginTop:'1rem' }}>
+                <img src={thumb} alt="Video thumbnail" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
                 <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ fontSize:11, color:'rgba(255,255,255,0.7)', letterSpacing:'0.08em' }}>AUTO-FETCHED THUMBNAIL</span>
+                  <span style={{ fontSize:11, letterSpacing:'0.1em', color:'rgba(255,255,255,0.7)' }}>AUTO-FETCHED THUMBNAIL ✓</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Hero text */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={{ fontSize:12, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.5rem' }}>Text</h2>
+            <h2 style={sh}>Hero Text</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
               <div>
-                <label style={labelStyle}>Tagline <span style={{ color:'var(--color-accent)' }}>*</span></label>
-                <input value={tagline} onChange={e=>setTagline(e.target.value)} placeholder="Creativity. Applied." style={inputStyle} />
-                <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.35rem' }}>The large italic serif headline. Second word shows in accent color.</p>
+                <label style={lbl}>Main Title</label>
+                <input value={settings.hero_tagline} onChange={e=>setSettings(s=>({...s,hero_tagline:e.target.value}))} style={inp} placeholder="Creativity."/>
               </div>
               <div>
-                <label style={labelStyle}>Subtitle</label>
-                <textarea value={subtitle} onChange={e=>setSubtitle(e.target.value)} rows={3} style={{...inputStyle, resize:'vertical' as const}} placeholder="Behavioral filmmaking. Creative strategy..." />
+                <label style={lbl}>Accent Title (italic, coral color)</label>
+                <input value={settings.hero_tagline_accent} onChange={e=>setSettings(s=>({...s,hero_tagline_accent:e.target.value}))} style={inp} placeholder="Applied."/>
+              </div>
+              <div>
+                <label style={lbl}>Subtitle</label>
+                <textarea value={settings.hero_subtitle} onChange={e=>setSettings(s=>({...s,hero_subtitle:e.target.value}))} rows={2} style={{...inp,resize:'vertical' as const}}/>
+              </div>
+              <div>
+                <label style={lbl}>Small Italic Line</label>
+                <input value={settings.hero_sub_italic} onChange={e=>setSettings(s=>({...s,hero_sub_italic:e.target.value}))} style={inp} placeholder="Where psychology meets cinema."/>
               </div>
             </div>
           </div>
 
-          <button onClick={()=>setSaved(true)} className="btn-primary" style={{ alignSelf:'flex-start' }}>
-            {saved ? 'Saved ✓' : 'Save Changes'}
+          <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
+            {saved ? '✓ Saved — Changes live on site' : saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
 
-        {/* Preview */}
         <div style={{ border:'0.5px solid var(--color-border)', padding:'1.5rem', position:'sticky', top:'1rem' }}>
           <p style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>Preview</p>
-          <div style={{ background:'#0a0a0a', aspectRatio:'16/9', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'1.5rem', textAlign:'center', position:'relative', overflow:'hidden' }}>
-            {thumb && <img src={thumb} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.4 }} />}
+          <div style={{ background:'#0a0a0a', aspectRatio:'16/9', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'1.25rem', textAlign:'center', position:'relative', overflow:'hidden' }}>
+            {thumb && <img src={thumb} alt="" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.35 }}/>}
             <div style={{ position:'relative', zIndex:1 }}>
-              <p style={{ fontSize:9, letterSpacing:'0.2em', color:'rgba(232,104,58,0.6)', marginBottom:'0.5rem' }}>FADE IN.</p>
-              <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:18, color:'#fff', lineHeight:1, marginBottom:'0.5rem' }}>
-                {tagline.split(' ').map((w,i) => i===1 ? <em key={i} style={{ color:'#e8683a' }}>{w}</em> : <span key={i}>{w} </span>)}
+              <p style={{ fontSize:8, letterSpacing:'0.2em', color:'rgba(232,104,58,0.6)', marginBottom:'0.5rem' }}>FADE IN.</p>
+              <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:16, color:'#fff', lineHeight:1, marginBottom:'0.25rem' }}>
+                {settings.hero_tagline}{' '}
+                <em style={{ color:'#e8683a' }}>{settings.hero_tagline_accent}</em>
               </p>
-              <p style={{ fontSize:9, color:'rgba(240,237,232,0.5)', lineHeight:1.5, maxWidth:200 }}>{subtitle}</p>
+              <p style={{ fontSize:9, color:'rgba(240,237,232,0.5)', lineHeight:1.5, maxWidth:180 }}>{settings.hero_subtitle}</p>
             </div>
           </div>
           <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.75rem', lineHeight:1.5 }}>
-            Changes take effect after adding env vars and redeploying. The video plays on desktop; mobile shows a fallback image.
+            Saves directly to Supabase. Changes appear on the live site within 60 seconds.
           </p>
         </div>
       </div>
     </div>
   )
 }
-const inputStyle: React.CSSProperties = { width:'100%', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border-mid)', padding:'0.625rem 0.875rem', fontSize:14, color:'var(--color-text-primary)', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }
-const labelStyle: React.CSSProperties = { display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }
+const inp: React.CSSProperties = { width:'100%', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border-mid)', padding:'0.625rem 0.875rem', fontSize:14, color:'var(--color-text-primary)', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }
+const lbl: React.CSSProperties = { display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }
+const sh: React.CSSProperties = { fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.25rem' }

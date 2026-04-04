@@ -170,3 +170,41 @@ ON CONFLICT DO NOTHING;
 -- SELECT * FROM press_items;
 -- SELECT * FROM films;
 -- ─────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────
+-- 8. SITE SETTINGS TABLE (key-value store)
+-- Run this if you haven't already
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS site_settings (
+  key           TEXT PRIMARY KEY,
+  value         TEXT,
+  updated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can read site settings"
+  ON site_settings FOR SELECT TO anon USING (true);
+
+CREATE POLICY "Service role full access site_settings"
+  ON site_settings FOR ALL USING (true);
+
+-- Seed default settings
+INSERT INTO site_settings (key, value) VALUES
+  ('hero_video_url', ''),
+  ('hero_tagline', 'Creativity.'),
+  ('hero_tagline_accent', 'Applied.'),
+  ('hero_subtitle', 'Behavioral filmmaking. Creative strategy. Technology built to think.'),
+  ('hero_sub_italic', 'Where psychology meets cinema.'),
+  ('site_title', 'Niddhish Puuzhakkal — Creativity. Applied.'),
+  ('contact_email', 'niddhish@lightseekermedia.com'),
+  ('contact_phone', '+91 99204 62666'),
+  ('about_photo_url', '')
+ON CONFLICT (key) DO NOTHING;
+
+-- ─────────────────────────────────────────────
+-- 9. STORAGE BUCKETS (run separately in Supabase dashboard > Storage)
+-- Or via API — handled by /api/admin/upload automatically
+-- ─────────────────────────────────────────────
+-- Create bucket 'uploads' with public access in:
+-- Supabase Dashboard → Storage → New Bucket → Name: uploads → Public: ON

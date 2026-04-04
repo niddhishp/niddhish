@@ -4,21 +4,21 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 export async function GET() {
   try {
     const sb = getSupabaseAdmin()
-    const { data, error } = await sb.from('blog_posts').select('*').order('created_at', { ascending: false })
+    const { data, error } = await sb.from('press_items').select('*').order('year', { ascending: false })
     if (error) throw error
-    return NextResponse.json({ posts: data })
+    return NextResponse.json({ items: data })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json()
+    const body = await req.json()
     const sb = getSupabaseAdmin()
-    const { data, error } = await sb.from('blog_posts').insert([body]).select().single()
+    const { data, error } = await sb.from('press_items').insert([body]).select().single()
     if (error) throw error
-    return NextResponse.json({ post: data })
+    return NextResponse.json({ item: data })
   } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }

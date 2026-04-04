@@ -1,105 +1,141 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function AdminAbout() {
-  const [form, setForm] = useState({
-    name: 'Niddhish Puuzhakkal',
-    title: 'Filmmaker · Psychologist · Author · Strategist',
-    quote: 'Creativity is not a talent. It is a skill that can be engineered.',
-    bio: 'With over 20 years across advertising, cinema, and behavioral science, Niddhish Puuzhakkal sits at the intersection of storytelling and strategy. He has directed 200+ TVCs for 80+ brands — from Nike and Harley Davidson to Tata and L\'Oréal — and written three books on the science of creativity.\n\nHis debut feature EGO (starring Arshad Warsi, Juhi Chawla, Divya Dutta and Gauhar Khan) is preparing for release. His second film Palkon Pe is in post-production, and his third — the Malayalam film Kabirinte Canvas — is in production.\n\nHe holds an MSc in Psychology and is a Six Sigma Black Belt and PMP, bringing a systems-thinking rigor to every creative challenge.',
-    linkedin: 'https://linkedin.com/in/niddhish',
-    twitter: 'https://twitter.com/niddhishp',
-    vimeo: 'https://vimeo.com/niddhish',
-    instagram: 'https://instagram.com/niddhishp',
-    stats: [
-      { number:'200', suffix:'+', label:'Commercials' },
-      { number:'3', suffix:'', label:'Feature Films' },
-      { number:'80', suffix:'+', label:'Brands' },
-      { number:'20', suffix:'+', label:'Years' },
-    ]
+  const [settings, setSettings] = useState({
+    about_photo_url: '',
+    about_name: 'Niddhish Puuzhakkal',
+    about_title: 'Filmmaker · Psychologist · Author · Strategist',
+    about_quote: 'Creativity is not a talent. It is a skill that can be engineered.',
+    about_bio: 'With over 20 years across advertising, cinema, and behavioral science, Niddhish Puuzhakkal sits at the intersection of storytelling and strategy. He has directed 200+ TVCs for 80+ brands and written three books on the science of creativity.\n\nHis debut feature EGO is preparing for release. His second film Palkon Pe is in post-production, and his third — Kabirinte Canvas — is in production.',
+    about_stat1_num: '200', about_stat1_suffix: '+', about_stat1_label: 'Commercials',
+    about_stat2_num: '3',   about_stat2_suffix: '',  about_stat2_label: 'Feature Films',
+    about_stat3_num: '80',  about_stat3_suffix: '+', about_stat3_label: 'Brands',
+    about_stat4_num: '20',  about_stat4_suffix: '+', about_stat4_label: 'Years',
+    social_linkedin: 'https://linkedin.com/in/niddhish',
+    social_twitter: 'https://twitter.com/niddhishp',
+    social_vimeo: 'https://vimeo.com/niddhish',
+    social_instagram: 'https://instagram.com/niddhishp',
+    social_youtube: 'https://youtube.com/@niddhishp',
   })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/settings').then(r=>r.json()).then(d => {
+      if (d.settings) setSettings(s => ({ ...s, ...d.settings }))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/admin/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(settings) })
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed')
+      setSaved(true); setTimeout(()=>setSaved(false), 3000)
+    } catch(e) { setError(e instanceof Error ? e.message : 'Save failed') }
+    finally { setSaving(false) }
+  }
+
+  const upd = (k: keyof typeof settings) => (v: string) => setSettings(s=>({...s,[k]:v}))
+  const updE = (k: keyof typeof settings) => (e: React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement>) => setSettings(s=>({...s,[k]:e.target.value}))
+
+  if (loading) return <div style={{ padding:'3rem', color:'var(--color-text-tertiary)', fontSize:14 }}>Loading…</div>
+
+  const STATS = [
+    { num:'about_stat1_num', suf:'about_stat1_suffix', lbl:'about_stat1_label' },
+    { num:'about_stat2_num', suf:'about_stat2_suffix', lbl:'about_stat2_label' },
+    { num:'about_stat3_num', suf:'about_stat3_suffix', lbl:'about_stat3_label' },
+    { num:'about_stat4_num', suf:'about_stat4_suffix', lbl:'about_stat4_label' },
+  ] as const
 
   return (
     <div>
       <div style={{ marginBottom:'2.5rem' }}>
         <h1 style={{ fontFamily:'var(--font-playfair,serif)', fontSize:28, fontWeight:400, color:'var(--color-text-primary)', marginBottom:'0.35rem', letterSpacing:'-0.02em' }}>About Page</h1>
-        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Controls the director portrait, bio, and stats.</p>
+        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Director portrait, bio, and stats. Saves directly to Supabase.</p>
       </div>
+      {error && <div style={{ padding:'0.75rem 1rem', background:'rgba(255,80,80,0.08)', border:'0.5px solid rgba(255,80,80,0.3)', color:'#ff6060', fontSize:13, marginBottom:'1.5rem' }}>{error}</div>}
+
       <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap:'3rem', alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
-          {/* Portrait */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sectionHead}>Portrait Photo</h2>
-            <div style={{ display:'flex', gap:'1.5rem', alignItems:'flex-start' }}>
-              <div style={{ width:100, height:120, background:'var(--color-surface-1)', border:'0.5px dashed var(--color-border)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <span style={{ fontSize:11, color:'var(--color-text-tertiary)', textAlign:'center', padding:'0.5rem' }}>Director<br/>portrait</span>
-              </div>
-              <div style={{ flex:1 }}>
-                <label style={lbl}>Image URL</label>
-                <input placeholder="https://... or upload to /public/niddhish-photo.jpg" style={inp} />
-                <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.5rem' }}>Or upload niddhish-photo.jpg to the /public folder in GitHub.</p>
-              </div>
-            </div>
+            <h2 style={sh}>Director Portrait</h2>
+            <ImageUpload
+              value={settings.about_photo_url}
+              onChange={upd('about_photo_url')}
+              label="Portrait Photo"
+              hint="Square or portrait crop. Shown on the About page. Upload from your computer or paste a URL."
+              aspect="3/4"
+              bucket="about"
+            />
           </div>
 
-          {/* Text */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sectionHead}>Text</h2>
+            <h2 style={sh}>Text</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
-              <div><label style={lbl}>Name</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={inp}/></div>
-              <div><label style={lbl}>Title / Role</label><input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} style={inp}/></div>
-              <div><label style={lbl}>One-line Quote (italic serif)</label><input value={form.quote} onChange={e=>setForm(f=>({...f,quote:e.target.value}))} style={inp}/></div>
-              <div><label style={lbl}>Biography</label><textarea value={form.bio} onChange={e=>setForm(f=>({...f,bio:e.target.value}))} rows={8} style={{...inp, resize:'vertical' as const, lineHeight:1.7}}/></div>
+              <div><label style={lbl}>Name</label><input value={settings.about_name} onChange={updE('about_name')} style={inp}/></div>
+              <div><label style={lbl}>Title / Role</label><input value={settings.about_title} onChange={updE('about_title')} style={inp}/></div>
+              <div><label style={lbl}>One-line Quote (italic serif)</label><input value={settings.about_quote} onChange={updE('about_quote')} style={inp}/></div>
+              <div><label style={lbl}>Biography</label><textarea value={settings.about_bio} onChange={updE('about_bio')} rows={8} style={{...inp,resize:'vertical' as const,lineHeight:1.7}}/></div>
             </div>
           </div>
 
-          {/* Stats */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sectionHead}>Stats</h2>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'1rem' }}>
-              {form.stats.map((s,i) => (
-                <div key={i}>
-                  <label style={lbl}>Stat {i+1}</label>
-                  <div style={{ display:'flex', gap:'0.25rem', marginBottom:'0.25rem' }}>
-                    <input value={s.number} onChange={e=>{const st=[...form.stats]; st[i]={...st[i],number:e.target.value}; setForm(f=>({...f,stats:st}))}} style={{...inp, width:60}} placeholder="200"/>
-                    <input value={s.suffix} onChange={e=>{const st=[...form.stats]; st[i]={...st[i],suffix:e.target.value}; setForm(f=>({...f,stats:st}))}} style={{...inp, width:40}} placeholder="+"/>
+            <h2 style={sh}>Stats</h2>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'1rem' }}>
+              {STATS.map((s,i) => (
+                <div key={i} style={{ border:'0.5px solid var(--color-border)', padding:'1rem' }}>
+                  <label style={{ ...lbl, marginBottom:'0.75rem' }}>Stat {i+1}</label>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:'0.5rem' }}>
+                    <div><label style={lbl}>Number</label><input value={settings[s.num]} onChange={updE(s.num)} style={inp} placeholder="200"/></div>
+                    <div><label style={lbl}>Suffix</label><input value={settings[s.suf]} onChange={updE(s.suf)} style={{...inp,width:44}} placeholder="+"/></div>
+                    <div><label style={lbl}>Label</label><input value={settings[s.lbl]} onChange={updE(s.lbl)} style={inp} placeholder="Brands"/></div>
                   </div>
-                  <input value={s.label} onChange={e=>{const st=[...form.stats]; st[i]={...st[i],label:e.target.value}; setForm(f=>({...f,stats:st}))}} style={inp} placeholder="Commercials"/>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Social */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sectionHead}>Social Links</h2>
+            <h2 style={sh}>Social Links</h2>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
-              {(['linkedin','twitter','vimeo','instagram'] as const).map(k => (
-                <div key={k}>
-                  <label style={lbl}>{k.charAt(0).toUpperCase()+k.slice(1)}</label>
-                  <input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={inp}/>
-                </div>
+              {([['social_linkedin','LinkedIn'],['social_twitter','Twitter / X'],['social_vimeo','Vimeo'],['social_instagram','Instagram'],['social_youtube','YouTube']] as const).map(([k,label]) => (
+                <div key={k}><label style={lbl}>{label}</label><input value={settings[k]} onChange={updE(k)} style={inp}/></div>
               ))}
             </div>
           </div>
 
-          <button className="btn-primary" style={{ alignSelf:'flex-start' }}>Save Changes</button>
+          <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
+            {saved ? '✓ Saved — Live on site' : saving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
 
-        {/* Preview sidebar */}
         <div style={{ border:'0.5px solid var(--color-border)', padding:'1.5rem', position:'sticky', top:'1rem' }}>
           <p style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>Preview</p>
           <div style={{ textAlign:'center' }}>
-            <div style={{ width:80, height:96, background:'var(--color-surface-1)', margin:'0 auto 1rem', border:'0.5px solid var(--color-border)' }}/>
-            <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:18, color:'var(--color-text-primary)', marginBottom:'0.25rem' }}>{form.name}</p>
-            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', letterSpacing:'0.06em', marginBottom:'1rem' }}>{form.title}</p>
-            <p style={{ fontFamily:'var(--font-playfair,serif)', fontStyle:'italic', fontSize:13, color:'var(--color-text-secondary)', lineHeight:1.6 }}>&ldquo;{form.quote}&rdquo;</p>
+            {settings.about_photo_url ? (
+              <div style={{ width:90, height:110, margin:'0 auto 1rem', overflow:'hidden', border:'0.5px solid var(--color-border)' }}>
+                <img src={settings.about_photo_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }}/>
+              </div>
+            ) : (
+              <div style={{ width:90, height:110, background:'var(--color-surface-1)', margin:'0 auto 1rem', border:'0.5px dashed var(--color-border)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <span style={{ fontSize:9, color:'var(--color-text-tertiary)', textAlign:'center' }}>No photo</span>
+              </div>
+            )}
+            <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:16, color:'var(--color-text-primary)', marginBottom:'0.2rem' }}>{settings.about_name}</p>
+            <p style={{ fontSize:10, color:'var(--color-text-tertiary)', letterSpacing:'0.06em', marginBottom:'0.875rem' }}>{settings.about_title}</p>
+            <p style={{ fontFamily:'var(--font-playfair,serif)', fontStyle:'italic', fontSize:11, color:'var(--color-text-secondary)', lineHeight:1.6 }}>&ldquo;{settings.about_quote}&rdquo;</p>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'0.5rem', marginTop:'1.5rem' }}>
-            {form.stats.map((s,i) => (
-              <div key={i} style={{ textAlign:'center' }}>
-                <p style={{ fontSize:18, color:'var(--color-text-primary)', fontFamily:'var(--font-playfair,serif)' }}>{s.number}{s.suffix}</p>
-                <p style={{ fontSize:9, color:'var(--color-text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{s.label}</p>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'0.5rem', marginTop:'1.25rem' }}>
+            {STATS.map((s,i) => (
+              <div key={i} style={{ textAlign:'center', padding:'0.5rem', border:'0.5px solid var(--color-border)' }}>
+                <p style={{ fontSize:18, color:'var(--color-text-primary)', fontFamily:'var(--font-playfair,serif)', lineHeight:1 }}>{settings[s.num]}{settings[s.suf]}</p>
+                <p style={{ fontSize:9, color:'var(--color-text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{settings[s.lbl]}</p>
               </div>
             ))}
           </div>
@@ -110,4 +146,4 @@ export default function AdminAbout() {
 }
 const inp: React.CSSProperties = { width:'100%', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border-mid)', padding:'0.625rem 0.875rem', fontSize:13, color:'var(--color-text-primary)', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }
 const lbl: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.3rem' }
-const sectionHead: React.CSSProperties = { fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.25rem' }
+const sh: React.CSSProperties = { fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.25rem' }
