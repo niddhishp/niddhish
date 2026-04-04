@@ -12,9 +12,24 @@ const SURFACES = [
 ]
 
 const BOOKS = [
-  { title:'On Creativity — Vol. I',   sub:'The psychology of the creative mind',        year:'2021' },
-  { title:'On Creativity — Vol. II',  sub:'Applied creativity for brand communication', year:'2022' },
-  { title:'On Creativity — Vol. III', sub:'Creative intelligence in the age of AI',     year:'2023' },
+  {
+    title: 'Dare to Create',
+    sub: 'The psychology of the creative mind',
+    year: '2021',
+    url: 'https://amzn.in/d/07JjynNK',
+  },
+  {
+    title: '99 Lies They Sold Us',
+    sub: 'Applied creativity for brand communication',
+    year: '2022',
+    url: 'https://amzn.in/d/0bUmlxHD',
+  },
+  {
+    title: 'Spark Your Creativity',
+    sub: 'Creative intelligence in the age of AI',
+    year: '2023',
+    url: 'https://amzn.in/d/00yQrwuZ',
+  },
 ]
 
 export default function Depth() {
@@ -82,8 +97,6 @@ export default function Depth() {
           <TiltCard
             key={b.title}
             intensity={8}
-            data-reveal
-            data-reveal-delay={String(i+1) as '1'|'2'|'3'}
             style={{
               background:'#0d0d0d',padding:'2.5rem 2rem',
               aspectRatio:'3/4',display:'flex',flexDirection:'column',
@@ -104,10 +117,32 @@ export default function Depth() {
               ))}
             </svg>
             <div aria-hidden style={{ position:'absolute',inset:0,background:'linear-gradient(135deg,#181818 0%,#0a0a0a 100%)',opacity:0.96 }}/>
-            <div style={{ position:'relative',zIndex:1 }}>
+            <div style={{ position:'relative',zIndex:1, display:'flex', flexDirection:'column', height:'100%', justifyContent:'flex-end' }}>
               <span style={{ display:'block',fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase' as const,color:'var(--color-accent)',marginBottom:'1rem' }}>{b.year}</span>
               <span style={{ display:'block',fontFamily:'var(--font-playfair,serif)',fontSize:19,fontWeight:400,color:'var(--color-text-primary)',lineHeight:1.2,marginBottom:'0.5rem' }}>{b.title}</span>
-              <span style={{ display:'block',fontSize:13,color:'var(--color-text-secondary)',lineHeight:1.5 }}>{b.sub}</span>
+              <span style={{ display:'block',fontSize:13,color:'var(--color-text-secondary)',lineHeight:1.5,marginBottom:'1.5rem' }}>{b.sub}</span>
+              <a
+                href={b.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:'inline-flex',alignItems:'center',gap:8,
+                  fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase' as const,
+                  color:'#0a0a0a',background:'var(--color-accent)',
+                  padding:'0.6rem 1.1rem',
+                  textDecoration:'none',
+                  fontWeight:500,
+                  transition:'opacity 0.2s',
+                  alignSelf:'flex-start',
+                }}
+                onMouseEnter={e=>((e.currentTarget as HTMLElement).style.opacity='0.85')}
+                onMouseLeave={e=>((e.currentTarget as HTMLElement).style.opacity='1')}
+              >
+                Read Now
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M1 5h8M5 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </a>
             </div>
           </TiltCard>
         ))}
