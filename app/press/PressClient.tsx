@@ -131,9 +131,9 @@ export default function PressClient({
                 display: 'grid', gridTemplateColumns: '1fr auto',
                 alignItems: 'center', gap: '2rem',
                 padding: '2rem 0',
+                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
                 borderBottom: '0.5px solid var(--color-border)',
-                background: 'none', border: 'none',
-                borderBottom: '0.5px solid var(--color-border)',
+                background: 'transparent',
                 cursor: 'pointer', textAlign: 'left', width: '100%',
                 transition: 'opacity 0.2s',
               }}
