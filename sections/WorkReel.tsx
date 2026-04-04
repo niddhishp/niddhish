@@ -2,209 +2,164 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { useScrollReveal } from '@/lib/useScrollReveal'
-import VideoModal from '@/components/VideoModal'
-
-interface Film {
-  id: number
-  title: string
-  brand: string
-  type: string
-  year: string
-  thumb: string
-  vimeoId: string
-}
-
-const FILMS: Film[] = [
-  { id:1, title:'Nike — The Charge Within',               brand:'Nike',           type:'Sport / Anthem',   year:'2024', thumb:'https://i.vimeocdn.com/video/2064044054-4a15d127aa3e80666290989c01ce2e9c1d63050a381bc4a418cf021c972d360f-d_1280x720', vimeoId:'2064044054' },
-  { id:2, title:'Harley Davidson — Ride Back to Yourself', brand:'Harley Davidson', type:'Brand Film',       year:'2024', thumb:'https://i.vimeocdn.com/video/2060441350-1aa7a69e323287db504b13d2a967e811154bede781fabe8a20f2d97b04cebf51-d_1280x720', vimeoId:'2060441350' },
-  { id:3, title:'Maruti Suzuki Victoris',                  brand:'Maruti Suzuki',  type:'Automobile',       year:'2024', thumb:'https://i.vimeocdn.com/video/2062686862-0d984015a604269c1cc290e54fba3352c005c7fda50f17ac811ee2fc57989c17-d_1280x720', vimeoId:'2062686862' },
-  { id:4, title:'Adidas Y-3 — The Serve',                  brand:'Adidas Y-3',    type:'Fashion / Sport',  year:'2024', thumb:'https://i.vimeocdn.com/video/2061570309-e596c4888403ddb9a724086defb2698376ef2872d817ff07da6329935bd98ace-d_1280x720', vimeoId:'2061570309' },
-  { id:5, title:'Uber — Move Forward',                     brand:'Uber',           type:'Narrative',        year:'2023', thumb:'https://i.vimeocdn.com/video/2058460834-12bf50e95a610e37b78ed0b28f877a1c9701104322054a12c2d618feb3b7c996-d_1280x720', vimeoId:'2058460834' },
-  { id:6, title:'Kinetic Green — The Befikr Ride',         brand:'Kinetic Green',  type:'EV / Lifestyle',   year:'2024', thumb:'https://i.vimeocdn.com/video/2062690757-46acbf86caea63bf0bc407d034ebe8ef6e53955d1fe5fd6b0c0eb1e6507a4eae-d_1280x720', vimeoId:'2062690757' },
-]
-
-const CLIENTS = ['Nike','Harley Davidson','Adidas','Uber','Maruti Suzuki','LG','Tata Motors','L\'Oréal','Mastercard','Zomato','Times of India','Westside','HP','Paytm','Big Basket','Housing.com','Vivo','Abbott','Cipla','Bandhan','Skoda','Honda','Toyota','Levi\'s','ONE Card']
-
 import type { Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
+import VideoModal from '@/components/VideoModal'
+import { VIDEOS, getThumbnail, CATEGORY_LABELS, type VideoCategory } from '@/lib/videos'
+
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 32 },
   show:   (i: number) => ({
     opacity: 1, y: 0,
-    transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] as [number, number, number, number], delay: i * 0.08 },
+    transition: { duration: 0.75, ease: EASE as [number, number, number, number], delay: i * 0.06 },
   }),
 }
 
+const BRANDS = [
+  'Nike', 'Harley Davidson', 'Maruti Suzuki', 'Adidas', 'Uber', 'Toyota', 'Ford',
+  'Levis', 'Tanishq', 'Bandhan', 'Pfizer', 'LG', 'Zomato', 'Mastercard',
+  'Big Basket', 'Skoda', 'Times of India', 'One Card', 'Housing.com', 'Kinetic Green',
+  'Beardo', 'Vinsmera', 'Just Younger',
+]
+
+// Show only the best 12 videos on homepage reel
+const FEATURED_IDS = [
+  '2064044054', // Nike
+  '2060441350', // Harley Davidson
+  '2062686862', // Maruti Victoris
+  '2061570309', // Adidas Y-3 Serve
+  '2062690757', // Kinetic Green
+  '2059633325', // Vinsmera
+  '2059433654', // Adidas Y-3 Drop
+  '2058460834', // Beardo
+  '1847847988', // Uber
+  '1847192710', // Housing.com
+  '2088701714', // Tanishq
+  '2064071664', // Ford Bronco
+]
+
 export default function WorkReel() {
-  useScrollReveal()
-  const [activeFilm, setActiveFilm] = useState<Film | null>(null)
+  const [active, setActive] = useState<{ id: string; source: 'vimeo' | 'youtube'; title: string } | null>(null)
+
+  const featured = FEATURED_IDS.map(id => VIDEOS.find(v => v.id === id)).filter(Boolean) as typeof VIDEOS
 
   return (
-    <section style={{ background: 'var(--color-bg)', paddingTop: '5rem' }}>
-
+    <section style={{ background: 'var(--color-bg)', borderTop: '0.5px solid var(--color-border)' }}>
       {/* Section header */}
-      <div
-        style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '2.5rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}
-        data-reveal
-      >
+      <div style={{ padding: '4rem clamp(1.25rem,5vw,3.5rem) 2rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
         <div>
           <div style={{
             fontFamily: '"JetBrains Mono","Courier New",monospace',
             fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
-            color: 'rgba(216,90,48,0.45)', marginBottom: '0.75rem',
-          }}>
-            SCENE 02 — THE REEL
-          </div>
-          <span className="text-label" style={{ display: 'block', marginBottom: '0.75rem' }}>Selected Work</span>
-          <h2 className="text-display-md" style={{ color: 'var(--color-text-primary)', letterSpacing: '-0.025em' }}>
-            200+ films.{' '}
-            <em style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>Every one a brief.</em>
+            color: 'rgba(232,104,58,0.45)', marginBottom: '0.75rem',
+          }}>SCENE 02 — THE REEL</div>
+          <span className="text-label" style={{ display: 'block', marginBottom: '0.75rem' }}>Brand Films</span>
+          <h2 className="text-display-md" style={{ color: 'var(--color-text-primary)' }}>
+            200+ commercials.{' '}
+            <em style={{ color: 'var(--color-accent)' }}>A selection.</em>
           </h2>
         </div>
-        <Link href="/work" className="btn-ghost" data-reveal data-reveal-delay="2">
-          Full Filmography
-        </Link>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', marginBottom: '0.5rem' }}>
+            {VIDEOS.length} films across {Object.keys(CATEGORY_LABELS).length} categories
+          </p>
+        </div>
       </div>
 
       {/* Film grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 2 }}>
-        {FILMS.map((film, i) => (
-          <motion.div
-            key={film.id}
+      <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+        {featured.map((video, i) => (
+          <motion.button
+            key={video.id}
             custom={i}
             variants={cardVariants}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
-            whileHover={{ scale: 1.0 }}
+            onClick={() => setActive({ id: video.id, source: video.source, title: video.title })}
+            style={{
+              position: 'relative', aspectRatio: '16/9',
+              background: '#111', overflow: 'hidden',
+              border: 'none', cursor: 'pointer', padding: 0,
+              display: 'block',
+            }}
+            data-film-card
           >
-            <button
-              onClick={() => setActiveFilm(film)}
-              className="film-card"
-              style={{
-                position: 'relative', display: 'block', width: '100%',
-                aspectRatio: '16/9', overflow: 'hidden',
-                background: 'var(--color-surface-2)',
-                border: 'none', cursor: 'pointer', padding: 0,
-              }}
-            >
-              <Image
-                src={film.thumb}
-                alt={film.title}
-                fill
-                sizes="(max-width:768px) 100vw, 33vw"
-                className="film-img"
-                style={{
-                  objectFit: 'cover',
-                  filter: 'brightness(0.55) saturate(0.85)',
-                  transition: 'transform 0.7s cubic-bezier(0.16,1,0.3,1), filter 0.4s',
-                }}
-              />
-
-              {/* Aspect ratio badge */}
-              <span style={{
-                position: 'absolute', top: '0.8rem', left: '0.8rem',
-                fontSize: 9, letterSpacing: '0.1em', color: 'rgba(240,237,232,0.3)',
-                fontFamily: '"JetBrains Mono","Courier New",monospace',
-                zIndex: 2,
-              }}>
-                2.39:1
+            <Image
+              src={getThumbnail(video)}
+              alt={video.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              style={{ objectFit: 'cover', transition: 'transform 0.6s ease' }}
+              unoptimized
+            />
+            {/* Hover overlay */}
+            <div className="film-overlay" style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)',
+              opacity: 0, transition: 'opacity 0.35s',
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+              padding: '1.25rem',
+            }}>
+              <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: '0.3rem' }}>
+                {video.brand}
               </span>
-
-              {/* Year */}
-              <span style={{
-                position: 'absolute', top: '0.8rem', right: '0.8rem',
-                fontSize: 9, letterSpacing: '0.1em', color: 'rgba(240,237,232,0.3)',
-                fontFamily: '"JetBrains Mono","Courier New",monospace',
-                zIndex: 2,
-              }}>
-                {film.year}
+              <span style={{ fontSize: 13, color: '#fff', lineHeight: 1.3, fontFamily: 'var(--font-playfair,serif)', fontWeight: 400, textAlign: 'left' }}>
+                {video.title}
               </span>
-
-              {/* Play button */}
-              <div className="film-play" style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%,-50%) scale(0.75)',
-                width: 52, height: 52, borderRadius: '50%',
-                border: '1px solid rgba(255,255,255,0.35)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: 0, transition: 'opacity 0.3s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1)',
-                zIndex: 2,
-              }}>
-                <svg width="12" height="14" viewBox="0 0 12 14" fill="white">
-                  <path d="M1 1l10 6-10 6V1z"/>
-                </svg>
-              </div>
-
-              {/* Caption */}
-              <div className="film-caption" style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0,
-                padding: '3rem 1.25rem 1.25rem',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.92))',
-                transform: 'translateY(100%)',
-                transition: 'transform 0.45s cubic-bezier(0.16,1,0.3,1)',
-                zIndex: 2, textAlign: 'left',
-              }}>
-                <span style={{ display: 'block', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: 4 }}>
-                  {film.brand} &nbsp;·&nbsp; {film.type}
-                </span>
-                <span style={{
-                  display: 'block', fontFamily: 'var(--font-playfair,serif)',
-                  fontSize: 15, fontWeight: 400, color: '#fff', lineHeight: 1.3,
-                }}>
-                  {film.title}
-                </span>
-              </div>
-            </button>
-          </motion.div>
+              <span style={{ fontSize: 10, color: 'rgba(240,237,232,0.5)', marginTop: '0.3rem', letterSpacing: '0.06em' }}>
+                {video.duration} · {CATEGORY_LABELS[video.category]}
+              </span>
+            </div>
+            {/* Play button */}
+            <div className="play-btn" style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%,-50%) scale(0.7)',
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'rgba(232,104,58,0.9)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: 0, transition: 'opacity 0.3s, transform 0.3s',
+            }}>
+              <svg width="14" height="16" viewBox="0 0 14 16" fill="white">
+                <path d="M1 1l12 7-12 7V1z"/>
+              </svg>
+            </div>
+          </motion.button>
         ))}
       </div>
 
-      {/* Marquee brand strip */}
-      <div style={{ borderTop: '0.5px solid var(--color-border)', padding: '2.5rem 0' }} data-reveal>
-        <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '1.25rem' }}>
-          <span className="text-label">Brands</span>
-        </div>
-        <div className="marquee-outer">
-          <div className="marquee-track">
-            {[...CLIENTS, ...CLIENTS].map((c, i) => (
-              <span key={i} style={{
-                fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--color-text-tertiary)', padding: '0 2.5rem',
-                whiteSpace: 'nowrap', flexShrink: 0,
-              }}>
-                {c}
-              </span>
-            ))}
-          </div>
+      {/* Brand marquee */}
+      <div style={{ padding: '3rem 0', overflow: 'hidden', borderTop: '0.5px solid var(--color-border)', marginTop: '2rem' }}>
+        <div className="marquee-track" aria-hidden>
+          {[...BRANDS, ...BRANDS].map((b, i) => (
+            <span key={i} style={{
+              fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: 'var(--color-text-tertiary)', flexShrink: 0,
+              padding: '0 2rem',
+            }}>
+              {b} <span style={{ color: 'var(--color-border-mid)', marginLeft: '2rem' }}>·</span>
+            </span>
+          ))}
         </div>
       </div>
 
-      {/* Video Modal */}
-      {activeFilm && (
-        <VideoModal
-          videoId={activeFilm.vimeoId}
-          title={activeFilm.title}
-          brand={activeFilm.brand}
-          type={activeFilm.type}
-          onClose={() => setActiveFilm(null)}
-        />
-      )}
+      <VideoModal
+        videoId={active?.id || null}
+        source={active?.source || 'vimeo'}
+        title={active?.title || ''}
+        onClose={() => setActive(null)}
+      />
 
       <style>{`
-        .film-card:hover .film-img { transform:scale(1.06)!important; filter:brightness(0.78) saturate(1)!important; }
-        .film-card:hover .film-caption { transform:translateY(0)!important; }
-        .film-card:hover .film-play { opacity:1!important; transform:translate(-50%,-50%) scale(1)!important; }
-        @media(max-width:768px){
-          section > div:nth-child(2){ grid-template-columns:1fr!important; }
-          .film-card .film-caption{ transform:translateY(0)!important; }
-        }
-        @media(min-width:769px) and (max-width:1100px){
-          section > div:nth-child(2){ grid-template-columns:repeat(2,1fr)!important; }
-        }
+        [data-film-card]:hover .film-overlay { opacity: 1 !important; }
+        [data-film-card]:hover .play-btn { opacity: 1 !important; transform: translate(-50%,-50%) scale(1) !important; }
+        [data-film-card]:hover img { transform: scale(1.04); }
+        .marquee-track { display: flex; animation: marquee 28s linear infinite; width: max-content; }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @media(max-width:900px){ section > div:nth-child(2) { grid-template-columns: repeat(2,1fr) !important; } }
+        @media(max-width:560px){ section > div:nth-child(2) { grid-template-columns: 1fr !important; } }
       `}</style>
     </section>
   )
