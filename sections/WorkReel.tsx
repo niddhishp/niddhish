@@ -145,12 +145,14 @@ export default function WorkReel() {
         </div>
       </div>
 
-      <VideoModal
-        videoId={active?.id || null}
-        source={active?.source || 'vimeo'}
-        title={active?.title || ''}
-        onClose={() => setActive(null)}
-      />
+      {active && (
+        <VideoModal
+          videoId={active.id}
+          source={active.source}
+          title={active.title}
+          onClose={() => setActive(null)}
+        />
+      )}
 
       <style>{`
         [data-film-card]:hover .film-overlay { opacity: 1 !important; }
