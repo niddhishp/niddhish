@@ -2,8 +2,12 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FEATURE_FILMS } from '@/lib/videos'
+
+// Merge static film data with live poster_url from Supabase
+type FilmWithLivePoster = typeof FEATURE_FILMS[number] & { livePosterUrl?: string | null }
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
@@ -13,7 +17,9 @@ const STATUS_STYLE = {
   production: { color: '#c8c870', border: 'rgba(180,180,100,0.4)', bg: 'rgba(180,180,100,0.1)' },
 }
 
-function PosterCard({ film, index }: { film: typeof FEATURE_FILMS[number]; index: number }) {
+function PosterCard({ film, index }: { film: FilmWithLivePoster; index: number }) {
+  // Live poster takes priority over static URL
+  const poster = film.livePosterUrl !== undefined ? film.livePosterUrl : film.posterUrl
   const sc = STATUS_STYLE[film.status]
 
   return (
@@ -33,10 +39,10 @@ function PosterCard({ film, index }: { film: typeof FEATURE_FILMS[number]; index
           background: '#0a0a0a',
           marginBottom: '1.25rem',
         }}>
-          {film.posterUrl ? (
+          {poster ? (
             <>
               <Image
-                src={film.posterUrl}
+                src={poster}
                 alt={`${film.title} official poster`}
                 fill
                 unoptimized
@@ -130,6 +136,23 @@ function PosterCard({ film, index }: { film: typeof FEATURE_FILMS[number]; index
 }
 
 export default function FilmsReel() {
+  const [films, setFilms] = useState<FilmWithLivePoster[]>(FEATURE_FILMS)
+
+  useEffect(() => {
+    // Fetch live poster URLs from Supabase to override static data
+    fetch('/api/admin/films')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.films) return
+        setFilms(FEATURE_FILMS.map(f => {
+          const live = d.films.find((lf: { title: string; poster_url: string | null }) =>
+            lf.title.toLowerCase() === f.title.toLowerCase()
+          )
+          return live ? { ...f, livePosterUrl: live.poster_url } : f
+        }))
+      })
+      .catch(() => {}) // silently fall back to static data
+  }, [])
   return (
     <section style={{
       background: '#060606',
@@ -166,7 +189,7 @@ export default function FilmsReel() {
         gridTemplateColumns: 'repeat(3, 1fr)',
         gap: 'clamp(1.5rem,3vw,2.5rem)',
       }}>
-        {FEATURE_FILMS.map((film, i) => (
+        {films.map((film, i) => (
           <PosterCard key={film.slug} film={film} index={i} />
         ))}
       </div>

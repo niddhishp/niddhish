@@ -3,6 +3,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { FEATURE_FILMS } from '@/lib/videos'
+import { getSupabaseClient } from '@/lib/supabase'
+
+export const revalidate = 60
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -31,6 +34,18 @@ export default async function FilmPage({ params }: Props) {
   const film = FEATURE_FILMS.find(f => f.slug === slug)
   if (!film) notFound()
 
+  // Fetch live poster URL from Supabase (overrides static data)
+  let posterUrl: string | null = film.posterUrl
+  try {
+    const sb = getSupabaseClient()
+    const { data } = await sb
+      .from('films')
+      .select('poster_url')
+      .ilike('title', film.title)
+      .single()
+    if (data?.poster_url) posterUrl = data.poster_url
+  } catch { /* fall back to static */ }
+
   const sc = STATUS_STYLE[film.status]
 
   return (
@@ -39,10 +54,10 @@ export default async function FilmPage({ params }: Props) {
       {/* Poster hero — full bleed */}
       <div style={{ position: 'relative', width: '100%', minHeight: '100dvh', display: 'flex', alignItems: 'flex-end' }}>
         {/* Poster / backdrop */}
-        {film.posterUrl ? (
+        {posterUrl ? (
           <>
             <Image
-              src={film.posterUrl}
+              src={posterUrl}
               alt={`${film.title} poster`}
               fill
               priority
@@ -154,10 +169,10 @@ export default async function FilmPage({ params }: Props) {
           {/* Right: poster card + crew */}
           <div>
             {/* Poster */}
-            {film.posterUrl && (
+            {posterUrl && (
               <div style={{ position: 'relative', aspectRatio: '2/3', marginBottom: '2.5rem', overflow: 'hidden' }}>
                 <Image
-                  src={film.posterUrl} alt={`${film.title} — Official Poster`}
+                  src={posterUrl} alt={`${film.title} — Official Poster`}
                   fill unoptimized
                   style={{ objectFit: 'cover', objectPosition: 'top' }}
                 />
