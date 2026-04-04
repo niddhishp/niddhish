@@ -1,6 +1,7 @@
 'use client'
 import { useScrollReveal } from '@/lib/useScrollReveal'
 import TiltCard from '@/components/TiltCard'
+import { useState, useEffect } from 'react'
 
 const SURFACES = [
   { n:'01', label:'Film & Direction',    slogan:'Story. Engineered.',       proof:'200+ TVCs · 3 Feature Films · Star TV EP', dark:false },
@@ -11,29 +12,30 @@ const SURFACES = [
   { n:'06', label:'The Core',            slogan:'Creativity. Applied.',     proof:'Six Sigma Black Belt · PMP · 20+ Years',  dark:true  },
 ]
 
-const BOOKS = [
-  {
-    title: 'Dare to Create',
-    sub: 'The psychology of the creative mind',
-    year: '2021',
-    url: 'https://amzn.in/d/07JjynNK',
-  },
-  {
-    title: '99 Lies They Sold Us',
-    sub: 'Applied creativity for brand communication',
-    year: '2022',
-    url: 'https://amzn.in/d/0bUmlxHD',
-  },
-  {
-    title: 'Spark Your Creativity',
-    sub: 'Creative intelligence in the age of AI',
-    year: '2023',
-    url: 'https://amzn.in/d/00yQrwuZ',
-  },
+const STATIC_BOOKS = [
+  { title: 'Dare to Create',       sub: 'The psychology of the creative mind',        year: '2021', url: 'https://amzn.in/d/07JjynNK', cover_url: '' },
+  { title: '99 Lies They Sold Us', sub: 'Applied creativity for brand communication', year: '2022', url: 'https://amzn.in/d/0bUmlxHD', cover_url: '' },
+  { title: 'Spark Your Creativity',sub: 'Creative intelligence in the age of AI',     year: '2023', url: 'https://amzn.in/d/00yQrwuZ', cover_url: '' },
 ]
+
+interface LiveBook { title: string; cover_url: string; synopsis: string; amazon_url: string; year: string }
 
 export default function Depth() {
   useScrollReveal()
+  const [books, setBooks] = useState(STATIC_BOOKS)
+
+  useEffect(() => {
+    fetch('/api/admin/books')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.books?.length) return
+        setBooks(STATIC_BOOKS.map(sb => {
+          const live: LiveBook = d.books.find((lb: LiveBook) => lb.title.toLowerCase() === sb.title.toLowerCase())
+          return live ? { ...sb, cover_url: live.cover_url || '', url: live.amazon_url || sb.url, sub: live.synopsis ? live.synopsis.split('.')[0] + '.' : sb.sub } : sb
+        }))
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <section style={{ background:'var(--color-bg-light)', padding:'6rem clamp(1.25rem,5vw,3.5rem)', position:'relative', overflow:'hidden' }}>
@@ -93,31 +95,49 @@ export default function Depth() {
       </div>
 
       <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'1.5rem' }}>
-        {BOOKS.map((b,i)=>(
+        {books.map((b,i)=>(
           <TiltCard
             key={b.title}
             intensity={8}
             style={{
-              background:'#0d0d0d',padding:'2.5rem 2rem',
+              background:'#0d0d0d',padding: b.cover_url ? 0 : '2.5rem 2rem',
               aspectRatio:'3/4',display:'flex',flexDirection:'column',
               justifyContent:'flex-end',overflow:'hidden',
               borderRadius:1,
             }}
           >
-            {/* Aperture watermark in each book card */}
-            <svg aria-hidden viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
-              style={{ position:'absolute',top:'10%',right:'-5%',width:120,height:120,opacity:0.05,pointerEvents:'none' }}>
-              <circle cx="50" cy="50" r="46" stroke="#d85a30" strokeWidth="0.8" fill="none"/>
-              <circle cx="50" cy="50" r="12" stroke="#d85a30" strokeWidth="1.2" fill="none"/>
-              {[0,60,120,180,240,300].map(deg=>(
-                <line key={deg}
-                  x1={50+14*Math.cos(deg*Math.PI/180)} y1={50+14*Math.sin(deg*Math.PI/180)}
-                  x2={50+44*Math.cos(deg*Math.PI/180)} y2={50+44*Math.sin(deg*Math.PI/180)}
-                  stroke="#d85a30" strokeWidth="1"/>
-              ))}
-            </svg>
-            <div aria-hidden style={{ position:'absolute',inset:0,background:'linear-gradient(135deg,#181818 0%,#0a0a0a 100%)',opacity:0.96 }}/>
-            <div style={{ position:'relative',zIndex:1, display:'flex', flexDirection:'column', height:'100%', justifyContent:'flex-end' }}>
+            {/* Cover image */}
+            {b.cover_url && (
+              <>
+                <img
+                  src={b.cover_url}
+                  alt={b.title}
+                  style={{
+                    position:'absolute',inset:0,width:'100%',height:'100%',
+                    objectFit:'cover',objectPosition:'top',
+                  }}
+                />
+                <div style={{ position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }}/>
+              </>
+            )}
+            {/* Aperture watermark — only when no cover */}
+            {!b.cover_url && (
+              <>
+                <svg aria-hidden viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+                  style={{ position:'absolute',top:'10%',right:'-5%',width:120,height:120,opacity:0.05,pointerEvents:'none' }}>
+                  <circle cx="50" cy="50" r="46" stroke="#d85a30" strokeWidth="0.8" fill="none"/>
+                  <circle cx="50" cy="50" r="12" stroke="#d85a30" strokeWidth="1.2" fill="none"/>
+                  {[0,60,120,180,240,300].map(deg=>(
+                    <line key={deg}
+                      x1={50+14*Math.cos(deg*Math.PI/180)} y1={50+14*Math.sin(deg*Math.PI/180)}
+                      x2={50+44*Math.cos(deg*Math.PI/180)} y2={50+44*Math.sin(deg*Math.PI/180)}
+                      stroke="#d85a30" strokeWidth="1"/>
+                  ))}
+                </svg>
+                <div aria-hidden style={{ position:'absolute',inset:0,background:'linear-gradient(135deg,#181818 0%,#0a0a0a 100%)',opacity:0.96 }}/>
+              </>
+            )}
+            <div style={{ position:'relative',zIndex:1, display:'flex', flexDirection:'column', height:'100%', justifyContent:'flex-end', padding: b.cover_url ? '1.5rem' : undefined }}>
               <span style={{ display:'block',fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase' as const,color:'var(--color-accent)',marginBottom:'1rem' }}>{b.year}</span>
               <span style={{ display:'block',fontFamily:'var(--font-playfair,serif)',fontSize:19,fontWeight:400,color:'var(--color-text-primary)',lineHeight:1.2,marginBottom:'0.5rem' }}>{b.title}</span>
               <span style={{ display:'block',fontSize:13,color:'var(--color-text-secondary)',lineHeight:1.5,marginBottom:'1.5rem' }}>{b.sub}</span>
