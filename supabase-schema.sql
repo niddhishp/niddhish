@@ -48,8 +48,8 @@ CREATE TABLE IF NOT EXISTS press_items (
   year          TEXT,
   url           TEXT,
   kind          TEXT DEFAULT 'press' CHECK (kind IN ('press', 'podcast')),
-  show          TEXT,      -- for podcasts: show name
-  host          TEXT,      -- for podcasts: host name
+  podcast_show  TEXT,      -- for podcasts: show name
+  podcast_host  TEXT,      -- for podcasts: host name
   published     BOOLEAN DEFAULT true,
   created_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS films (
   year          TEXT,
   genre         TEXT,
   tagline       TEXT,
-  cast          TEXT,
+  cast_members  TEXT,
   status        TEXT DEFAULT 'production' CHECK (status IN ('release', 'post', 'production')),
   status_label  TEXT,
   poster_url    TEXT,
@@ -126,7 +126,7 @@ CREATE TRIGGER blog_posts_updated_at
 -- ─────────────────────────────────────────────
 -- 7. SEED INITIAL FILMS DATA
 -- ─────────────────────────────────────────────
-INSERT INTO films (title, year, genre, tagline, cast, status, status_label, poster_url, sort_order)
+INSERT INTO films (title, year, genre, tagline, cast_members, status, status_label, poster_url, sort_order)
 VALUES
   (
     'EGO',
