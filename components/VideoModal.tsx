@@ -29,7 +29,7 @@ export default function VideoModal({ videoId, source = 'vimeo', title, brand, ty
 
   const embedUrl = !videoId ? '' : source === 'youtube'
     ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
-    : `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=e8683a&dnt=1`
+    : `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=e8683a&dnt=1&transparent=0&speed=1`
 
   return (
     <AnimatePresence>
@@ -148,7 +148,6 @@ export default function VideoModal({ videoId, source = 'vimeo', title, brand, ty
             allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
             allowFullScreen
             title={title}
-            referrerPolicy="strict-origin-when-cross-origin"
           />
           {/* Frame corners */}
           {['tl','tr','bl','br'].map(c => (
