@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -8,18 +8,42 @@ import VideoModal from '@/components/VideoModal'
 import { VIDEOS, getThumbnail, CATEGORY_LABELS, FEATURE_FILMS, type VideoCategory } from '@/lib/videos'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-const TABS = ['All', ...Object.values(CATEGORY_LABELS)] as string[]
+
+interface LiveVideo {
+  id: string; video_id: string; source: 'vimeo'|'youtube'
+  title: string; brand: string; category: string; duration: string
+}
+interface LiveCategory { slug: string; label: string }
 
 export default function WorkClient() {
   const [activeTab, setActiveTab] = useState('All')
   const [search, setSearch] = useState('')
   const [active, setActive] = useState<{ id: string; source: 'vimeo' | 'youtube'; title: string } | null>(null)
 
-  const filtered = VIDEOS.filter(v => {
-    const catMatch = activeTab === 'All' || CATEGORY_LABELS[v.category] === activeTab
+  // Live data from Supabase, fallback to static
+  const [liveVideos, setLiveVideos] = useState<LiveVideo[]|null>(null)
+  const [liveCats, setLiveCats] = useState<LiveCategory[]|null>(null)
+
+  useEffect(() => {
+    fetch('/api/videos').then(r=>r.json()).then(d=>{ if(d.videos?.length) setLiveVideos(d.videos) }).catch(()=>{})
+    fetch('/api/admin/categories').then(r=>r.json()).then(d=>{ if(d.categories?.length) setLiveCats(d.categories) }).catch(()=>{})
+  }, [])
+
+  // Use live data if available, otherwise static
+  const cats: {slug:string;label:string}[] = liveCats || Object.entries(CATEGORY_LABELS).map(([slug,label])=>({slug,label}))
+  const allVideos = liveVideos
+    ? liveVideos.map(v => ({
+        id: v.video_id, source: v.source, title: v.title,
+        brand: v.brand, category: v.category as VideoCategory, duration: v.duration,
+        thumbnail: v.source==='youtube' ? `https://i.ytimg.com/vi/${v.video_id}/maxresdefault.jpg` : `https://i.vimeocdn.com/video/${v.video_id}_640.jpg`
+      }))
+    : VIDEOS.map(v => ({ ...v, thumbnail: getThumbnail(v) }))
+
+  const filtered = allVideos.filter(v => {
+    const tabSlug = cats.find(c=>c.label===activeTab)?.slug
+    const catMatch = activeTab === 'All' || v.category === tabSlug
     const q = search.toLowerCase()
-    const textMatch = !q || v.title.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q)
-    return catMatch && textMatch
+    return catMatch && (!q || v.title.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q))
   })
 
   return (
@@ -80,7 +104,7 @@ export default function WorkClient() {
         {/* Filter tabs + search */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-            {TABS.map(tab => (
+            {['All', ...cats.map(c=>c.label)].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 fontSize: 11, padding: '0.875rem 1.1rem',
                 background: 'transparent', border: 'none',
@@ -106,80 +130,45 @@ export default function WorkClient() {
 
       {/* Video grid */}
       <div style={{ padding: '2px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 2,
-        }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
           {filtered.map((video, i) => (
             <motion.button
-              key={video.id}
+              key={`${video.id}-${i}`}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.5, ease: EASE, delay: (i % 8) * 0.04 }}
               onClick={() => setActive({ id: video.id, source: video.source, title: video.title })}
-              style={{
-                position: 'relative', aspectRatio: '16/9',
-                background: '#111', overflow: 'hidden',
-                border: 'none', cursor: 'pointer', padding: 0,
-              }}
+              style={{ position: 'relative', aspectRatio: '16/9', background: '#111', overflow: 'hidden', border: 'none', cursor: 'pointer', padding: 0 }}
               data-film-card
             >
               <Image
-                src={getThumbnail(video)}
+                src={video.thumbnail}
                 alt={video.title}
                 fill
                 sizes="(max-width:640px) 50vw, 25vw"
                 style={{ objectFit: 'cover', transition: 'transform 0.55s ease' }}
                 unoptimized
               />
-              <div className="wk-overlay" style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)',
-                opacity: 0, transition: 'opacity 0.3s',
-                display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0.875rem',
-              }}>
-                <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: '0.2rem' }}>
-                  {video.brand}
-                </span>
-                <span style={{ fontSize: 12, color: '#fff', lineHeight: 1.3, fontFamily: 'var(--font-playfair,serif)', textAlign: 'left' }}>
-                  {video.title}
-                </span>
-                <span style={{ fontSize: 9, color: 'rgba(240,237,232,0.45)', marginTop: '0.25rem', letterSpacing: '0.06em' }}>
-                  {video.duration}
-                </span>
+              <div className="wk-overlay" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', opacity: 0, transition: 'opacity 0.3s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0.875rem' }}>
+                <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: '0.2rem' }}>{video.brand}</span>
+                <span style={{ fontSize: 12, color: '#fff', lineHeight: 1.3, fontFamily: 'var(--font-playfair,serif)', textAlign: 'left' }}>{video.title}</span>
+                <span style={{ fontSize: 9, color: 'rgba(240,237,232,0.45)', marginTop: '0.25rem', letterSpacing: '0.06em' }}>{video.duration}</span>
               </div>
-              <div className="wk-play" style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%,-50%) scale(0.6)',
-                width: 36, height: 36, borderRadius: '50%',
-                background: 'rgba(232,104,58,0.9)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: 0, transition: 'opacity 0.25s, transform 0.25s',
-              }}>
+              <div className="wk-play" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) scale(0.6)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(232,104,58,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.25s, transform 0.25s' }}>
                 <svg width="11" height="13" viewBox="0 0 11 13" fill="white"><path d="M1 1l9 5.5-9 5.5V1z"/></svg>
               </div>
-              {/* Source badge */}
-              <div style={{
-                position: 'absolute', top: 6, right: 6,
-                fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase',
-                background: video.source === 'youtube' ? 'rgba(255,0,0,0.75)' : 'rgba(26,183,234,0.75)',
-                color: '#fff', padding: '1px 5px', borderRadius: 1,
-              }}>{video.source === 'youtube' ? 'YT' : 'Vi'}</div>
+              <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 8, letterSpacing: '0.06em', textTransform: 'uppercase', background: video.source === 'youtube' ? 'rgba(255,0,0,0.75)' : 'rgba(26,183,234,0.75)', color: '#fff', padding: '1px 5px', borderRadius: 1 }}>{video.source === 'youtube' ? 'YT' : 'Vi'}</div>
             </motion.button>
           ))}
         </div>
-
         {filtered.length === 0 && (
-          <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 14 }}>
-            No videos match your search.
-          </div>
+          <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 14 }}>No videos match your search.</div>
         )}
       </div>
 
       <p style={{ padding: '1.5rem clamp(1.5rem,5vw,4rem)', fontSize: 12, color: 'var(--color-text-tertiary)' }}>
-        Showing {filtered.length} of {VIDEOS.length} films
+        Showing {filtered.length} of {allVideos.length} films
       </p>
 
       {active && (

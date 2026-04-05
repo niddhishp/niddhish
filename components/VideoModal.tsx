@@ -29,7 +29,11 @@ export default function VideoModal({ videoId, source = 'vimeo', title, brand, ty
 
   const embedUrl = !videoId ? '' : source === 'youtube'
     ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
-    : `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=e8683a&dnt=1&transparent=0&speed=1`
+    : `https://player.vimeo.com/video/${videoId}?autoplay=1&title=0&byline=0&portrait=0&color=e8683a&dnt=1`
+
+  const externalUrl = !videoId ? '' : source === 'youtube'
+    ? `https://www.youtube.com/watch?v=${videoId}`
+    : `https://vimeo.com/${videoId}`
 
   return (
     <AnimatePresence>
@@ -162,6 +166,28 @@ export default function VideoModal({ videoId, source = 'vimeo', title, brand, ty
               borderRight: c.endsWith('r') ? '1px solid rgba(216,90,48,0.4)' : 'none',
             }} />
           ))}
+        </motion.div>
+
+        {/* Open external fallback — if video doesn't play due to Vimeo embed settings */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}
+        >
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(240,237,232,0.45)', textDecoration: 'none', transition: 'color 0.2s' }}
+          >
+            Open on {source === 'youtube' ? 'YouTube' : 'Vimeo'} ↗
+          </a>
+          {source === 'vimeo' && (
+            <span style={{ fontSize: 10, color: 'rgba(240,237,232,0.25)', letterSpacing: '0.04em' }}>
+              If video doesn&apos;t load: Vimeo → Settings → Embed → Anywhere
+            </span>
+          )}
         </motion.div>
 
         {/* Film title below */}

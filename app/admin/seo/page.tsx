@@ -1,121 +1,114 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AdminSEO() {
   const [form, setForm] = useState({
-    siteTitle: 'Niddhish Puuzhakkal — Creativity. Applied.',
-    metaDesc: 'Filmmaker. Psychologist. Author. Strategist. Technologist. 200+ commercials, 3 films, 3 books, 80+ brands. Creative intelligence applied to every problem.',
-    keywords: 'Niddhish Puuzhakkal, film director India, TVC director Mumbai, brand strategy, creative director, filmmaker psychologist, Light Seeker Films',
-    ogImage: 'https://niddhish.com/og-image.jpg',
-    twitterHandle: '@niddhishp',
-    robots: 'index, follow',
-    canonical: 'https://niddhish.com',
-    sitemap: '/sitemap.xml',
+    seo_title: 'Niddhish Puuzhakkal — Creativity. Applied.',
+    seo_description: 'Filmmaker. Psychologist. Author. Strategist. Technologist. 200+ commercials, 3 films, 3 books, 80+ brands. Creative intelligence applied to every problem.',
+    seo_keywords: 'Niddhish Puuzhakkal, film director India, TVC director Mumbai, brand strategy, creative director, filmmaker psychologist, Light Seeker Films',
+    seo_og_image: 'https://niddhish.com/og-image.jpg',
+    seo_twitter_handle: '@niddhishp',
+    seo_robots: 'index, follow',
+    seo_canonical: 'https://niddhish.com',
   })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>) => {
-    setSaved(false); setForm(p => ({...p,[k]:e.target.value}))
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/settings').then(r=>r.json()).then(d => {
+      if (d.settings) setForm(f => ({ ...f, ...d.settings }))
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/admin/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(form) })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setSaved(true); setTimeout(()=>setSaved(false), 3000)
+    } catch(e) { setError(e instanceof Error ? e.message : 'Save failed') }
+    finally { setSaving(false) }
   }
-  const titleLen = form.siteTitle.length
-  const descLen = form.metaDesc.length
+
+  const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>) =>
+    setForm(p => ({...p,[k]:e.target.value}))
+
+  const titleLen = form.seo_title.length
+  const descLen = form.seo_description.length
+
+  if (loading) return <div style={{ padding:'3rem', color:'var(--color-text-tertiary)', fontSize:14 }}>Loading…</div>
 
   return (
     <div>
       <div style={{ marginBottom:'2.5rem' }}>
         <h1 style={{ fontFamily:'var(--font-playfair,serif)', fontSize:28, fontWeight:400, color:'var(--color-text-primary)', marginBottom:'0.35rem', letterSpacing:'-0.02em' }}>SEO Settings</h1>
-        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Optimize your site for search engines and social sharing.</p>
+        <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>Saves directly to Supabase. Changes reflect in metadata on next deploy.</p>
       </div>
+
+      {error && <div style={{ padding:'0.75rem 1rem', background:'rgba(255,80,80,0.08)', border:'0.5px solid rgba(255,80,80,0.3)', color:'#ff6060', fontSize:13, marginBottom:'1.5rem' }}>{error}</div>}
+
       <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:'3rem', alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
-          {/* Basic SEO */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
             <h2 style={sh}>Basic SEO</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
               <div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.4rem' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'0.4rem' }}>
                   <label style={lbl}>Site Title</label>
                   <span style={{ fontSize:10, color: titleLen>60 ? '#ff6060' : 'var(--color-text-tertiary)' }}>{titleLen}/60</span>
                 </div>
-                <input value={form.siteTitle} onChange={f('siteTitle')} style={inp}/>
+                <input value={form.seo_title} onChange={f('seo_title')} style={inp}/>
               </div>
               <div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.4rem' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'0.4rem' }}>
                   <label style={lbl}>Meta Description</label>
                   <span style={{ fontSize:10, color: descLen>160 ? '#ff6060' : 'var(--color-text-tertiary)' }}>{descLen}/160</span>
                 </div>
-                <textarea value={form.metaDesc} onChange={f('metaDesc')} rows={3} style={{...inp,resize:'vertical' as const}}/>
+                <textarea value={form.seo_description} onChange={f('seo_description')} rows={3} style={{...inp,resize:'vertical' as const}}/>
               </div>
-              <div>
-                <label style={lbl}>Keywords (comma separated)</label>
-                <textarea value={form.keywords} onChange={f('keywords')} rows={2} style={{...inp,resize:'vertical' as const}}/>
-              </div>
+              <div><label style={lbl}>Keywords</label><textarea value={form.seo_keywords} onChange={f('seo_keywords')} rows={2} style={{...inp,resize:'vertical' as const}}/></div>
             </div>
           </div>
 
-          {/* Social */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sh}>Social Sharing · Open Graph & Twitter Cards</h2>
+            <h2 style={sh}>Social Sharing</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
               <div>
-                <label style={lbl}>OG Image URL <span style={{ color:'var(--color-text-tertiary)', fontWeight:400, textTransform:'none', letterSpacing:'0.04em' }}>— Recommended: 1200×630px</span></label>
-                <input value={form.ogImage} onChange={f('ogImage')} style={inp} placeholder="https://niddhish.com/og-image.jpg"/>
-                {form.ogImage && (
-                  <div style={{ marginTop:'0.75rem', border:'0.5px solid var(--color-border)', overflow:'hidden' }}>
-                    <img src={form.ogImage} alt="OG preview" style={{ width:'100%', aspectRatio:'1200/630', objectFit:'cover', display:'block' }} onError={(e)=>(e.currentTarget.style.display='none')}/>
-                  </div>
-                )}
+                <label style={lbl}>OG Image URL <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'none', letterSpacing:'0.04em', fontWeight:400 }}>— 1200×630px recommended</span></label>
+                <input value={form.seo_og_image} onChange={f('seo_og_image')} style={inp}/>
+                {form.seo_og_image && <img src={form.seo_og_image} alt="OG preview" style={{ marginTop:'0.75rem', width:'100%', aspectRatio:'1200/630', objectFit:'cover', display:'block', border:'0.5px solid var(--color-border)' }} onError={e=>(e.currentTarget.style.display='none')}/>}
               </div>
-              <div>
-                <label style={lbl}>Twitter Handle</label>
-                <input value={form.twitterHandle} onChange={f('twitterHandle')} style={inp} placeholder="@niddhishp"/>
-              </div>
+              <div><label style={lbl}>Twitter Handle</label><input value={form.seo_twitter_handle} onChange={f('seo_twitter_handle')} style={inp} placeholder="@niddhishp"/></div>
             </div>
           </div>
 
-          {/* Technical */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sh}>Technical SEO</h2>
+            <h2 style={sh}>Technical</h2>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
               <div>
-                <label style={lbl}>Robots.txt Directive</label>
-                <select value={form.robots} onChange={f('robots')} style={inp}>
-                  <option value="index, follow">index, follow (default)</option>
+                <label style={lbl}>Robots</label>
+                <select value={form.seo_robots} onChange={f('seo_robots')} style={inp}>
+                  <option value="index, follow">index, follow</option>
                   <option value="noindex, nofollow">noindex, nofollow</option>
-                  <option value="index, nofollow">index, nofollow</option>
                 </select>
               </div>
-              <div>
-                <label style={lbl}>Canonical URL</label>
-                <input value={form.canonical} onChange={f('canonical')} style={inp}/>
-              </div>
-              <div>
-                <label style={lbl}>Sitemap URL</label>
-                <input value={form.sitemap} onChange={f('sitemap')} style={inp}/>
-              </div>
-              <div style={{ display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
-                <div style={{ padding:'0.75rem', background:'rgba(80,200,120,0.08)', border:'0.5px solid rgba(80,200,120,0.3)', borderRadius:2 }}>
-                  <p style={{ fontSize:12, color:'rgba(80,200,120,0.9)' }}>● Index Status: Indexable</p>
-                </div>
-              </div>
+              <div><label style={lbl}>Canonical URL</label><input value={form.seo_canonical} onChange={f('seo_canonical')} style={inp}/></div>
             </div>
           </div>
-          <button onClick={()=>setSaved(true)} className="btn-primary" style={{ alignSelf:'flex-start' }}>{saved ? 'Saved ✓' : 'Save SEO Settings'}</button>
+
+          <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
+            {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save SEO Settings'}
+          </button>
         </div>
 
-        {/* Google Preview */}
-        <div style={{ position:'sticky', top:'1rem' }}>
-          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.5rem', marginBottom:'1rem' }}>
-            <p style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>Google Preview</p>
-            <p style={{ fontSize:14, color:'#1a73e8', marginBottom:'0.25rem', lineHeight:1.3 }}>{form.siteTitle}</p>
-            <p style={{ fontSize:11, color:'#202124', marginBottom:'0.25rem' }}>{form.canonical}</p>
-            <p style={{ fontSize:12, color:'#4d5156', lineHeight:1.5 }}>{form.metaDesc}</p>
-          </div>
-          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.5rem' }}>
-            <p style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>Social Card Preview</p>
-            {form.ogImage && <img src={form.ogImage} alt="" style={{ width:'100%', aspectRatio:'1200/630', objectFit:'cover', marginBottom:'0.75rem', display:'block' }} onError={(e)=>(e.currentTarget.style.display='none')}/>}
-            <p style={{ fontSize:13, color:'var(--color-text-primary)', fontWeight:500, lineHeight:1.3, marginBottom:'0.2rem' }}>{form.siteTitle}</p>
-            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', lineHeight:1.4 }}>{form.metaDesc.substring(0,100)}...</p>
-          </div>
+        <div style={{ border:'0.5px solid var(--color-border)', padding:'1.5rem', position:'sticky', top:'1rem' }}>
+          <p style={{ fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>Google Preview</p>
+          <p style={{ fontSize:14, color:'#1a73e8', marginBottom:'0.25rem', lineHeight:1.3 }}>{form.seo_title}</p>
+          <p style={{ fontSize:11, color:'#202124', marginBottom:'0.25rem' }}>{form.seo_canonical}</p>
+          <p style={{ fontSize:12, color:'#4d5156', lineHeight:1.5 }}>{form.seo_description}</p>
         </div>
       </div>
     </div>
