@@ -42,7 +42,7 @@ const FEATURED_IDS = [
 ]
 
 export default function WorkReel() {
-  const [active, setActive] = useState<{ id: string; source: 'vimeo' | 'youtube'; title: string } | null>(null)
+  const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
   const [sectionLabel, setSectionLabel] = useState('SCENE 02 — THE REEL')
   const [heading, setHeading] = useState('200+ commercials.')
   const [accent, setAccent] = useState('A selection.')
@@ -90,7 +90,7 @@ export default function WorkReel() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
-            onClick={() => setActive({ id: video.id, source: video.source, title: video.title })}
+            onClick={() => setActive({ videoUrl: video.source === 'youtube' ? `https://www.youtube.com/watch?v=${video.id}` : `https://vimeo.com/${video.id}`, title: video.title, brand: video.brand })}
             style={{
               position: 'relative', aspectRatio: '16/9',
               background: '#111', overflow: 'hidden',
@@ -159,9 +159,9 @@ export default function WorkReel() {
 
       {active && (
         <VideoModal
-          videoId={active.id}
-          source={active.source}
+          videoUrl={active.videoUrl}
           title={active.title}
+          brand={active.brand}
           onClose={() => setActive(null)}
         />
       )}

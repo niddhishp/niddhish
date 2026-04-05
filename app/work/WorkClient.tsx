@@ -5,46 +5,72 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import VideoModal from '@/components/VideoModal'
-import { VIDEOS, getThumbnail, CATEGORY_LABELS, FEATURE_FILMS, type VideoCategory } from '@/lib/videos'
+import { VIDEOS, getThumbnail, CATEGORY_LABELS, FEATURE_FILMS } from '@/lib/videos'
+import { parseVideoUrl } from '@/lib/videoUtils'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+const RAILWAY_API = 'https://lightseeker-films-production.up.railway.app'
 
-interface LiveVideo {
-  id: string; video_id: string; source: 'vimeo'|'youtube'
-  title: string; brand: string; category: string; duration: string
+interface RailwayVideo {
+  id: string
+  title: string
+  client: string
+  category: string
+  duration: string
+  thumbnail: string
+  video_url: string
 }
-interface LiveCategory { slug: string; label: string }
 
 export default function WorkClient() {
   const [activeTab, setActiveTab] = useState('All')
   const [search, setSearch] = useState('')
-  const [active, setActive] = useState<{ id: string; source: 'vimeo' | 'youtube'; title: string } | null>(null)
-
-  // Live data from Supabase, fallback to static
-  const [liveVideos, setLiveVideos] = useState<LiveVideo[]|null>(null)
-  const [liveCats, setLiveCats] = useState<LiveCategory[]|null>(null)
+  const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
+  const [railwayVideos, setRailwayVideos] = useState<RailwayVideo[]|null>(null)
+  const [cats, setCats] = useState<string[]>([])
 
   useEffect(() => {
-    fetch('/api/videos').then(r=>r.json()).then(d=>{ if(d.videos?.length) setLiveVideos(d.videos) }).catch(()=>{})
-    fetch('/api/admin/categories').then(r=>r.json()).then(d=>{ if(d.categories?.length) setLiveCats(d.categories) }).catch(()=>{})
+    fetch(`${RAILWAY_API}/api/projects?is_active=true`)
+      .then(r => r.json())
+      .then((data: RailwayVideo[]) => {
+        if (!data?.length) return
+        setRailwayVideos(data)
+        // Build unique category list preserving order of first appearance
+        const seen = new Set<string>()
+        const catList: string[] = []
+        data.forEach(v => { if (v.category && !seen.has(v.category)) { seen.add(v.category); catList.push(v.category) } })
+        setCats(catList.sort())
+      })
+      .catch(() => {})
   }, [])
 
-  // Use live data if available, otherwise static
-  const cats: {slug:string;label:string}[] = liveCats || Object.entries(CATEGORY_LABELS).map(([slug,label])=>({slug,label}))
-  const allVideos = liveVideos
-    ? liveVideos.map(v => ({
-        id: v.video_id, source: v.source, title: v.title,
-        brand: v.brand, category: v.category as VideoCategory, duration: v.duration,
-        thumbnail: v.source==='youtube' ? `https://i.ytimg.com/vi/${v.video_id}/maxresdefault.jpg` : `https://i.vimeocdn.com/video/${v.video_id}_640.jpg`
+  const allVideos = railwayVideos
+    ? railwayVideos.map(v => {
+        const info = parseVideoUrl(v.video_url)
+        return {
+          videoUrl: v.video_url,
+          id: info?.id || '',
+          source: info?.provider === 'youtube' ? 'youtube' as const : 'vimeo' as const,
+          title: v.title,
+          brand: v.client,
+          category: v.category,
+          duration: v.duration,
+          thumbnail: v.thumbnail || info?.thumbnailUrl || '',
+        }
+      })
+    : VIDEOS.map(v => ({
+        videoUrl: v.source === 'youtube' ? `https://www.youtube.com/watch?v=${v.id}` : `https://vimeo.com/${v.id}`,
+        id: v.id, source: v.source, title: v.title, brand: v.brand,
+        category: v.category as string, duration: v.duration,
+        thumbnail: getThumbnail(v),
       }))
-    : VIDEOS.map(v => ({ ...v, thumbnail: getThumbnail(v) }))
 
   const filtered = allVideos.filter(v => {
-    const tabSlug = cats.find(c=>c.label===activeTab)?.slug
-    const catMatch = activeTab === 'All' || v.category === tabSlug
+    const catMatch = activeTab === 'All' || v.category === activeTab
     const q = search.toLowerCase()
     return catMatch && (!q || v.title.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q))
   })
+
+  const tabList = railwayVideos ? ['All', ...cats] : ['All', ...Object.values(CATEGORY_LABELS)]
 
   return (
     <main style={{ background: 'var(--color-bg)', minHeight: '100dvh' }}>
@@ -104,7 +130,7 @@ export default function WorkClient() {
         {/* Filter tabs + search */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
-            {['All', ...cats.map(c=>c.label)].map(tab => (
+            {tabList.map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 fontSize: 11, padding: '0.875rem 1.1rem',
                 background: 'transparent', border: 'none',
@@ -133,17 +159,17 @@ export default function WorkClient() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
           {filtered.map((video, i) => (
             <motion.button
-              key={`${video.id}-${i}`}
+              key={`${video.videoUrl}-${i}`}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true, margin: '-40px' }}
               transition={{ duration: 0.5, ease: EASE, delay: (i % 8) * 0.04 }}
-              onClick={() => setActive({ id: video.id, source: video.source, title: video.title })}
+              onClick={() => setActive({ videoUrl: video.videoUrl, title: video.title, brand: video.brand })}
               style={{ position: 'relative', aspectRatio: '16/9', background: '#111', overflow: 'hidden', border: 'none', cursor: 'pointer', padding: 0 }}
               data-film-card
             >
               <Image
-                src={video.thumbnail}
+                src={video.thumbnail || `https://i.vimeocdn.com/video/${video.id}_640.jpg`}
                 alt={video.title}
                 fill
                 sizes="(max-width:640px) 50vw, 25vw"
@@ -173,9 +199,9 @@ export default function WorkClient() {
 
       {active && (
         <VideoModal
-          videoId={active.id}
-          source={active.source}
+          videoUrl={active.videoUrl}
           title={active.title}
+          brand={active.brand}
           onClose={() => setActive(null)}
         />
       )}
