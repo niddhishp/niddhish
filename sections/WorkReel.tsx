@@ -6,9 +6,10 @@ import Link from 'next/link'
 import type { Variants } from 'framer-motion'
 import { motion } from 'framer-motion'
 import VideoModal from '@/components/VideoModal'
-import { VIDEOS, getThumbnail, CATEGORY_LABELS, type VideoCategory } from '@/lib/videos'
+import { parseVideoUrl } from '@/lib/videoUtils'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
+const RAILWAY_API = 'https://lightseeker-films-production.up.railway.app'
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 32 },
@@ -25,27 +26,25 @@ const BRANDS = [
   'Beardo', 'Vinsmera', 'Just Younger',
 ]
 
-// Show only the best 12 videos on homepage reel
-const FEATURED_IDS = [
-  '2064044054', // Nike
-  '2060441350', // Harley Davidson
-  '2062686862', // Maruti Victoris
-  '2061570309', // Adidas Y-3 Serve
-  '2062690757', // Kinetic Green
-  '2059633325', // Vinsmera
-  '2059433654', // Adidas Y-3 Drop
-  '2058460834', // Beardo
-  '1847847988', // Uber
-  '1847192710', // Housing.com
-  '2088701714', // Tanishq
-  '2064071664', // Ford Bronco
-]
+interface RailwayVideo {
+  id: string; title: string; client: string; category: string
+  duration: string; thumbnail: string; video_url: string; is_featured: boolean; sort_order: number
+}
+
+function getThumb(v: RailwayVideo): string {
+  if (v.thumbnail) return v.thumbnail
+  const info = parseVideoUrl(v.video_url)
+  if (info?.provider === 'youtube') return `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg`
+  if (info?.provider === 'vimeo') return `https://i.vimeocdn.com/video/${info.id}_640.jpg`
+  return ''
+}
 
 export default function WorkReel() {
   const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
   const [sectionLabel, setSectionLabel] = useState('SCENE 02 — THE REEL')
   const [heading, setHeading] = useState('200+ commercials.')
   const [accent, setAccent] = useState('A selection.')
+  const [featured, setFeatured] = useState<RailwayVideo[]>([])
 
   useEffect(() => {
     fetch('/api/content').then(r => r.json()).then(d => {
@@ -53,9 +52,26 @@ export default function WorkReel() {
       if (d.section_reel_heading) setHeading(d.section_reel_heading)
       if (d.section_reel_accent)  setAccent(d.section_reel_accent)
     }).catch(() => {})
-  }, [])
 
-  const featured = FEATURED_IDS.map(id => VIDEOS.find(v => v.id === id)).filter(Boolean) as typeof VIDEOS
+    // Fetch featured videos from Railway (shared DB)
+    fetch(`${RAILWAY_API}/api/projects?is_active=true`)
+      .then(r => r.json())
+      .then((data: RailwayVideo[]) => {
+        if (!data?.length) return
+        const feat = data
+          .filter(v => v.is_featured)
+          .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
+          .slice(0, 12)
+        // If fewer than 12 featured, pad with non-featured
+        if (feat.length < 12) {
+          const nonFeat = data.filter(v => !v.is_featured).slice(0, 12 - feat.length)
+          setFeatured([...feat, ...nonFeat])
+        } else {
+          setFeatured(feat)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <section style={{ background: 'var(--color-bg)', borderTop: '0.5px solid var(--color-border)' }}>
@@ -90,7 +106,7 @@ export default function WorkReel() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
-            onClick={() => setActive({ videoUrl: video.source === 'youtube' ? `https://www.youtube.com/watch?v=${video.id}` : `https://vimeo.com/${video.id}`, title: video.title, brand: video.brand })}
+            onClick={() => setActive({ videoUrl: video.video_url, title: video.title, brand: video.client })}
             style={{
               position: 'relative', aspectRatio: '16/9',
               background: '#111', overflow: 'hidden',
@@ -100,7 +116,7 @@ export default function WorkReel() {
             data-film-card
           >
             <Image
-              src={getThumbnail(video)}
+              src={getThumb(video)}
               alt={video.title}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
@@ -116,13 +132,13 @@ export default function WorkReel() {
               padding: '1.25rem',
             }}>
               <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: '0.3rem' }}>
-                {video.brand}
+                {video.client}
               </span>
               <span style={{ fontSize: 13, color: '#fff', lineHeight: 1.3, fontFamily: 'var(--font-playfair,serif)', fontWeight: 400, textAlign: 'left' }}>
                 {video.title}
               </span>
               <span style={{ fontSize: 10, color: 'rgba(240,237,232,0.5)', marginTop: '0.3rem', letterSpacing: '0.06em' }}>
-                {video.duration} · {CATEGORY_LABELS[video.category]}
+                {video.duration} · {video.category}
               </span>
             </div>
             {/* Play button */}

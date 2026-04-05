@@ -54,7 +54,9 @@ export default function WorkClient() {
           brand: v.client,
           category: v.category,
           duration: v.duration,
-          thumbnail: v.thumbnail || info?.thumbnailUrl || '',
+          thumbnail: v.thumbnail ||
+            (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` :
+             info?.provider === 'vimeo'   ? `https://i.vimeocdn.com/video/${info.id}_640.jpg` : ''),
         }
       })
     : VIDEOS.map(v => ({
