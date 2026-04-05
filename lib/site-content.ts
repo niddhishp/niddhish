@@ -30,9 +30,11 @@ export const DEFAULTS = {
   section_films_label: 'SCENE 03 — THE FEATURES',
   section_films_heading: 'Three films.',
   section_films_accent: 'Story. Engineered.',
+  privacy_content: '# Privacy Policy\n\nUpdated April 2026.\n\nLight Seeker Films does not sell or share your data.',
+  terms_content: '# Terms of Use\n\nUpdated April 2026.\n\nAll content on this site is the intellectual property of Niddhish Puuzhakkal and Light Seeker Films.',
 }
 
-export type SiteContent = typeof DEFAULTS
+export type SiteContent = typeof DEFAULTS & Record<string, string>
 
 export async function getSiteContent(): Promise<SiteContent> {
   try {
@@ -44,13 +46,11 @@ export async function getSiteContent(): Promise<SiteContent> {
     const { data } = await sb.from('site_settings').select('key,value')
     if (!data) return DEFAULTS
 
-    const merged = { ...DEFAULTS }
+    const merged: Record<string, string> = { ...DEFAULTS }
     data.forEach(row => {
-      if (row.key in merged) {
-        (merged as Record<string, string>)[row.key] = row.value
-      }
+      merged[row.key] = row.value
     })
-    return merged
+    return merged as SiteContent
   } catch {
     return DEFAULTS
   }

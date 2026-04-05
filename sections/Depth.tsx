@@ -3,13 +3,13 @@ import { useScrollReveal } from '@/lib/useScrollReveal'
 import TiltCard from '@/components/TiltCard'
 import { useState, useEffect } from 'react'
 
-const SURFACES = [
-  { n:'01', label:'Film & Direction',    slogan:'Story. Engineered.',       proof:'200+ TVCs · 3 Feature Films · Star TV EP', dark:false },
-  { n:'02', label:'Brand Strategy',      slogan:'Brands. Transformed.',     proof:'80+ Brands · 360° Campaigns',             dark:false },
-  { n:'03', label:'Psychology & Writing',slogan:'Creativity. Taught.',      proof:'MSc Psychology · 3 Published Books',      dark:false },
-  { n:'04', label:'Creative Technology', slogan:'Creativity. Built.',       proof:'AI Tools · Apps · Production Systems',    dark:false },
-  { n:'05', label:'PR & Reputation',     slogan:'Perception. Engineered.',  proof:'Brand & Individual Rep · Built Tech',     dark:false },
-  { n:'06', label:'The Core',            slogan:'Creativity. Applied.',     proof:'Six Sigma Black Belt · PMP · 20+ Years',  dark:true  },
+const DEFAULT_SURFACES = [
+  { n:'01', label:'Film & Direction',    slogan:'Story. Engineered.',       proof:'200+ TVCs · 3 Feature Films · Star TV EP' },
+  { n:'02', label:'Brand Strategy',      slogan:'Brands. Transformed.',     proof:'80+ Brands · 360° Campaigns' },
+  { n:'03', label:'Psychology & Writing',slogan:'Creativity. Taught.',      proof:'MSc Psychology · 3 Published Books' },
+  { n:'04', label:'Creative Technology', slogan:'Creativity. Built.',       proof:'AI Tools · Apps · Production Systems' },
+  { n:'05', label:'PR & Reputation',     slogan:'Perception. Engineered.',  proof:'Brand & Individual Rep · Built Tech' },
+  { n:'06', label:'The Core',            slogan:'Creativity. Applied.',     proof:'Six Sigma Black Belt · PMP · 20+ Years' },
 ]
 
 const STATIC_BOOKS = [
@@ -23,48 +23,53 @@ interface LiveBook { title: string; cover_url: string; synopsis: string; amazon_
 export default function Depth() {
   useScrollReveal()
   const [books, setBooks] = useState(STATIC_BOOKS)
+  const [surfaces, setSurfaces] = useState(DEFAULT_SURFACES)
+  const [methodLabel, setMethodLabel] = useState('SCENE 04 — THE METHOD')
+  const [methodTagline, setMethodTagline] = useState('One discipline. Six surfaces.')
+  const [methodSubtitle, setMethodSubtitle] = useState('Creativity applied across every problem domain.')
+  const [booksLabel, setBooksLabel] = useState('Published Work')
+  const [booksHeading, setBooksHeading] = useState('Three books on creativity.')
+  const [booksAccent, setBooksAccent] = useState('The methodology, written down.')
 
   useEffect(() => {
-    fetch('/api/admin/books')
-      .then(r => r.json())
-      .then(d => {
-        if (!d.books?.length) return
-        setBooks(STATIC_BOOKS.map(sb => {
-          const live: LiveBook = d.books.find((lb: LiveBook) => lb.title.toLowerCase() === sb.title.toLowerCase())
-          return live ? { ...sb, cover_url: live.cover_url || '', url: live.amazon_url || sb.url, sub: live.synopsis ? live.synopsis.split('.')[0] + '.' : sb.sub } : sb
-        }))
-      })
-      .catch(() => {})
+    fetch('/api/content').then(r=>r.json()).then(d=>{
+      if(d.method_label)    setMethodLabel(d.method_label)
+      if(d.method_tagline)  setMethodTagline(d.method_tagline)
+      if(d.method_subtitle) setMethodSubtitle(d.method_subtitle)
+      if(d.books_label)     setBooksLabel(d.books_label)
+      if(d.books_heading)   setBooksHeading(d.books_heading)
+      if(d.books_accent)    setBooksAccent(d.books_accent)
+      if(d.method_surfaces) { try{ setSurfaces(JSON.parse(d.method_surfaces)) }catch{} }
+    }).catch(()=>{})
+    fetch('/api/admin/books').then(r=>r.json()).then(d=>{
+      if(!d.books?.length) return
+      setBooks(STATIC_BOOKS.map(sb => {
+        const live: LiveBook = d.books.find((lb: LiveBook) => lb.title.toLowerCase() === sb.title.toLowerCase())
+        return live ? { ...sb, cover_url: live.cover_url||'', url: live.amazon_url||sb.url, sub: live.synopsis ? live.synopsis.split('.')[0]+'.' : sb.sub } : sb
+      }))
+    }).catch(()=>{})
   }, [])
 
   return (
     <section style={{ background:'var(--color-bg-light)', padding:'6rem clamp(1.25rem,5vw,3.5rem)', position:'relative', overflow:'hidden' }}>
       {/* Intro */}
       <div data-reveal style={{ marginBottom:'3.5rem' }}>
-        <div style={{
-          fontFamily:'"JetBrains Mono","Courier New",monospace',
-          fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase',
-          color:'rgba(216,90,48,0.35)',marginBottom:'0.75rem',
-        }}>SCENE 04 — THE METHOD</div>
-        <span className="text-label" style={{ display:'block',marginBottom:'0.75rem',color:'var(--color-text-on-light-muted)' }}>
-          One discipline. Six surfaces.
-        </span>
-        <h2 className="text-display-md" style={{ color:'var(--color-text-on-light)',maxWidth:620 }}>
-          Creativity applied across every problem domain.
-        </h2>
+        <div style={{ fontFamily:'"JetBrains Mono","Courier New",monospace', fontSize:9,letterSpacing:'0.14em',textTransform:'uppercase', color:'rgba(216,90,48,0.35)',marginBottom:'0.75rem' }}>{methodLabel}</div>
+        <span className="text-label" style={{ display:'block',marginBottom:'0.75rem',color:'var(--color-text-on-light-muted)' }}>{methodTagline}</span>
+        <h2 className="text-display-md" style={{ color:'var(--color-text-on-light)',maxWidth:620 }}>{methodSubtitle}</h2>
       </div>
 
       {/* Grid */}
       <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:1,background:'rgba(13,13,13,0.09)',marginBottom:'5rem' }}>
-        {SURFACES.map((s,i)=>(
+        {surfaces.map((s: {n:string;label:string;slogan:string;proof:string}, i: number)=>(
           <div key={s.n} data-reveal data-reveal-delay={String((i%3)+1) as '1'|'2'|'3'}
             style={{
-              background:s.dark?'#0d0d0d':'var(--color-bg-light)',
+              background:i===5?'#0d0d0d':'var(--color-bg-light)',
               padding:'2rem',minHeight:190,display:'flex',flexDirection:'column',gap:'0.6rem',
               position:'relative',overflow:'hidden',
             }}>
             {/* Aperture watermark on "The Core" cell */}
-            {s.dark && (
+            {i===5 && (
               <svg aria-hidden viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
                 style={{ position:'absolute',bottom:'-10px',right:'-10px',width:80,height:80,opacity:0.04,pointerEvents:'none' }}>
                 <circle cx="50" cy="50" r="46" stroke="#d85a30" strokeWidth="1" fill="none"/>
@@ -77,20 +82,20 @@ export default function Depth() {
                 ))}
               </svg>
             )}
-            <span style={{ fontSize:10,letterSpacing:'0.1em',color:s.dark?'rgba(240,237,232,0.3)':'var(--color-text-on-light-muted)' }}>{s.n}</span>
-            <span className="text-display-sm" style={{ color:s.dark?'var(--color-text-primary)':'var(--color-text-on-light)' }}>{s.label}</span>
+            <span style={{ fontSize:10,letterSpacing:'0.1em',color:i===5?'rgba(240,237,232,0.3)':'var(--color-text-on-light-muted)' }}>{s.n}</span>
+            <span className="text-display-sm" style={{ color:i===5?'var(--color-text-primary)':'var(--color-text-on-light)' }}>{s.label}</span>
             <span style={{ fontSize:11,fontWeight:500,letterSpacing:'0.07em',textTransform:'uppercase' as const,color:'var(--color-accent)' }}>{s.slogan}</span>
-            <span style={{ fontSize:12,marginTop:'auto',color:s.dark?'rgba(240,237,232,0.4)':'var(--color-text-on-light-muted)',lineHeight:1.5 }}>{s.proof}</span>
+            <span style={{ fontSize:12,marginTop:'auto',color:i===5?'rgba(240,237,232,0.4)':'var(--color-text-on-light-muted)',lineHeight:1.5 }}>{s.proof}</span>
           </div>
         ))}
       </div>
 
       {/* Books */}
       <div data-reveal style={{ marginBottom:'2rem' }}>
-        <span className="text-label" style={{ display:'block',marginBottom:'0.75rem',color:'var(--color-text-on-light-muted)' }}>Published Work</span>
+        <span className="text-label" style={{ display:'block',marginBottom:'0.75rem',color:'var(--color-text-on-light-muted)' }}>{booksLabel}</span>
         <h3 className="text-display-sm" style={{ color:'var(--color-text-on-light)',marginBottom:'2.5rem' }}>
-          Three books on creativity.{' '}
-          <em style={{ color:'var(--color-accent)' }}>The methodology, written down.</em>
+          {booksHeading}{' '}
+          <em style={{ color:'var(--color-accent)' }}>{booksAccent}</em>
         </h3>
       </div>
 

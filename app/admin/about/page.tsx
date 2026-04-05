@@ -164,27 +164,44 @@ export default function AdminAbout() {
 
           {/* Timeline */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
-            <h2 style={sh}>Timeline</h2>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
+              <h2 style={sh}>Timeline</h2>
+              <button onClick={() => {
+                let tl: {year:string;event:string}[] = []
+                try { tl = JSON.parse(settings.about_timeline||'[]') } catch {}
+                setSettings(s => ({ ...s, about_timeline: JSON.stringify([...tl, {year:new Date().getFullYear().toString(), event:''}]) }))
+              }} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>+ Add Entry</button>
+            </div>
             <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'1rem', lineHeight:1.6 }}>
-              Career milestones shown on the About page. Edit year or event text directly.
+              Career milestones shown on the About page. Edit year and event, then save.
             </p>
             {(() => {
-              let timeline: { year: string; event: string }[] = []
+              let timeline: {year:string;event:string}[] = []
               try { timeline = JSON.parse(settings.about_timeline || '[]') } catch { timeline = [] }
               return (
                 <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
                   {timeline.map((t, i) => (
-                    <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 1fr', gap:'0.5rem' }}>
+                    <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 1fr auto', gap:'0.5rem', alignItems:'center' }}>
                       <input value={t.year} onChange={e => {
-                        const updated = [...timeline]; updated[i] = { ...updated[i], year: e.target.value }
-                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(updated) }))
-                      }} style={{...inp, textAlign:'center', fontFamily:'"JetBrains Mono",monospace'}} />
+                        const u = [...timeline]; u[i] = { ...u[i], year: e.target.value }
+                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
+                      }} style={{...inp, textAlign:'center', fontFamily:'"JetBrains Mono",monospace'}} placeholder="2024"/>
                       <input value={t.event} onChange={e => {
-                        const updated = [...timeline]; updated[i] = { ...updated[i], event: e.target.value }
-                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(updated) }))
-                      }} style={inp} />
+                        const u = [...timeline]; u[i] = { ...u[i], event: e.target.value }
+                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
+                      }} style={inp} placeholder="Career milestone…"/>
+                      <button onClick={() => {
+                        const u = timeline.filter((_,j)=>j!==i)
+                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
+                      }} style={{ background:'none', border:'none', color:'rgba(255,80,80,0.5)', cursor:'pointer', fontSize:16, padding:'0 4px', lineHeight:1 }} title="Delete">×</button>
                     </div>
                   ))}
+                  {timeline.length === 0 && (
+                    <div style={{ padding:'1.5rem', border:'0.5px dashed var(--color-border)', textAlign:'center' }}>
+                      <p style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:'0.75rem' }}>No timeline entries yet.</p>
+                      <button onClick={() => setSettings(s=>({...s,about_timeline:JSON.stringify([{year:'2003',event:'First TVC direction'}])}))} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>Add First Entry</button>
+                    </div>
+                  )}
                 </div>
               )
             })()}
