@@ -21,6 +21,15 @@ export const DEFAULTS = {
   social_vimeo: 'https://vimeo.com/niddhish',
   social_instagram: 'https://instagram.com/niddhishp',
   social_youtube: 'https://youtube.com/@niddhishp',
+  about_story: '',
+  about_credentials: '',
+  about_timeline: '',
+  section_reel_label: 'SCENE 02 — THE REEL',
+  section_reel_heading: '200+ commercials.',
+  section_reel_accent: 'A selection.',
+  section_films_label: 'SCENE 03 — THE FEATURES',
+  section_films_heading: 'Three films.',
+  section_films_accent: 'Story. Engineered.',
 }
 
 export type SiteContent = typeof DEFAULTS

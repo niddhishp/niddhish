@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Variants } from 'framer-motion'
@@ -43,6 +43,17 @@ const FEATURED_IDS = [
 
 export default function WorkReel() {
   const [active, setActive] = useState<{ id: string; source: 'vimeo' | 'youtube'; title: string } | null>(null)
+  const [sectionLabel, setSectionLabel] = useState('SCENE 02 — THE REEL')
+  const [heading, setHeading] = useState('200+ commercials.')
+  const [accent, setAccent] = useState('A selection.')
+
+  useEffect(() => {
+    fetch('/api/content').then(r => r.json()).then(d => {
+      if (d.section_reel_label)   setSectionLabel(d.section_reel_label)
+      if (d.section_reel_heading) setHeading(d.section_reel_heading)
+      if (d.section_reel_accent)  setAccent(d.section_reel_accent)
+    }).catch(() => {})
+  }, [])
 
   const featured = FEATURED_IDS.map(id => VIDEOS.find(v => v.id === id)).filter(Boolean) as typeof VIDEOS
 
@@ -55,11 +66,11 @@ export default function WorkReel() {
             fontFamily: '"JetBrains Mono","Courier New",monospace',
             fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
             color: 'rgba(232,104,58,0.45)', marginBottom: '0.75rem',
-          }}>SCENE 02 — THE REEL</div>
+          }}>{ sectionLabel }</div>
           <span className="text-label" style={{ display: 'block', marginBottom: '0.75rem' }}>Brand Films</span>
           <h2 className="text-display-md" style={{ color: 'var(--color-text-primary)' }}>
-            200+ commercials.{' '}
-            <em style={{ color: 'var(--color-accent)' }}>A selection.</em>
+            { heading }{' '}
+            <em style={{ color: 'var(--color-accent)' }}>{ accent }</em>
           </h2>
         </div>
         <div style={{ textAlign: 'right' }}>

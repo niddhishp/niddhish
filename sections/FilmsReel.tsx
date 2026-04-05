@@ -137,6 +137,9 @@ function PosterCard({ film, index }: { film: FilmWithLivePoster; index: number }
 
 export default function FilmsReel() {
   const [films, setFilms] = useState<FilmWithLivePoster[]>(FEATURE_FILMS)
+  const [sceneLabel, setSceneLabel] = useState('SCENE 03 — THE FEATURES')
+  const [filmHeading, setFilmHeading] = useState('Three films.')
+  const [filmAccent, setFilmAccent] = useState('Story. Engineered.')
 
   useEffect(() => {
     // Fetch live poster URLs from Supabase to override static data
@@ -151,7 +154,14 @@ export default function FilmsReel() {
           return live ? { ...f, livePosterUrl: live.poster_url } : f
         }))
       })
-      .catch(() => {}) // silently fall back to static data
+      .catch(() => {})
+
+    // Fetch section text
+    fetch('/api/content').then(r => r.json()).then(d => {
+      if (d.section_films_label)   setSceneLabel(d.section_films_label)
+      if (d.section_films_heading) setFilmHeading(d.section_films_heading)
+      if (d.section_films_accent)  setFilmAccent(d.section_films_accent)
+    }).catch(() => {})
   }, [])
   return (
     <section style={{
@@ -172,11 +182,11 @@ export default function FilmsReel() {
             fontFamily: '"JetBrains Mono","Courier New",monospace',
             fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
             color: 'rgba(232,104,58,0.45)', marginBottom: '0.75rem',
-          }}>SCENE 03 — THE FEATURES</div>
+          }}>{ sceneLabel }</div>
           <span className="text-label" style={{ display: 'block', marginBottom: '0.75rem' }}>Feature Films</span>
           <h2 className="text-display-md" style={{ color: 'var(--color-text-primary)' }}>
-            Three films.{' '}
-            <em style={{ color: 'var(--color-accent)', fontStyle: 'italic' }}>Story. Engineered.</em>
+            { filmHeading }{' '}
+            <em style={{ color: 'var(--color-accent)', fontStyle: 'italic' }}>{ filmAccent }</em>
           </h2>
         </div>
         <Link href="/work" className="btn-ghost" style={{ fontSize: 12 }}>Full Filmography</Link>

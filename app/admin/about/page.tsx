@@ -18,6 +18,9 @@ export default function AdminAbout() {
     social_vimeo: 'https://vimeo.com/niddhish',
     social_instagram: 'https://instagram.com/niddhishp',
     social_youtube: 'https://youtube.com/@niddhishp',
+    about_story: '',
+    about_credentials: '',
+    about_timeline: '',
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -110,6 +113,83 @@ export default function AdminAbout() {
             </div>
           </div>
 
+          {/* Story */}
+          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
+            <h2 style={sh}>Origin Story</h2>
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'1rem', lineHeight:1.6 }}>
+              This appears as the main narrative on the About page — the story of how you became a behavioral filmmaker.
+            </p>
+            <textarea
+              value={settings.about_story || ''}
+              onChange={updE('about_story' as keyof typeof settings)}
+              rows={10}
+              style={{...inp, resize:'vertical' as const, lineHeight:1.7, fontSize:13}}
+              placeholder="Early in my career I directed a film I was genuinely proud of..."
+            />
+          </div>
+
+          {/* Credentials */}
+          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
+            <h2 style={sh}>Credentials</h2>
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'1rem', lineHeight:1.6 }}>
+              Edit each credential label and description below.
+            </p>
+            {(() => {
+              let creds: { label: string; sub: string }[] = []
+              try { creds = JSON.parse(settings.about_credentials || '[]') } catch { creds = [] }
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                  {creds.map((c, i) => (
+                    <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem', padding:'0.75rem', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border)' }}>
+                      <div>
+                        <label style={lbl}>Credential</label>
+                        <input value={c.label} onChange={e => {
+                          const updated = [...creds]; updated[i] = { ...updated[i], label: e.target.value }
+                          setSettings(s => ({ ...s, about_credentials: JSON.stringify(updated) }))
+                        }} style={inp} />
+                      </div>
+                      <div>
+                        <label style={lbl}>Description</label>
+                        <input value={c.sub} onChange={e => {
+                          const updated = [...creds]; updated[i] = { ...updated[i], sub: e.target.value }
+                          setSettings(s => ({ ...s, about_credentials: JSON.stringify(updated) }))
+                        }} style={inp} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Timeline */}
+          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
+            <h2 style={sh}>Timeline</h2>
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'1rem', lineHeight:1.6 }}>
+              Career milestones shown on the About page. Edit year or event text directly.
+            </p>
+            {(() => {
+              let timeline: { year: string; event: string }[] = []
+              try { timeline = JSON.parse(settings.about_timeline || '[]') } catch { timeline = [] }
+              return (
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
+                  {timeline.map((t, i) => (
+                    <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 1fr', gap:'0.5rem' }}>
+                      <input value={t.year} onChange={e => {
+                        const updated = [...timeline]; updated[i] = { ...updated[i], year: e.target.value }
+                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(updated) }))
+                      }} style={{...inp, textAlign:'center', fontFamily:'"JetBrains Mono",monospace'}} />
+                      <input value={t.event} onChange={e => {
+                        const updated = [...timeline]; updated[i] = { ...updated[i], event: e.target.value }
+                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(updated) }))
+                      }} style={inp} />
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+
           <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
             {saved ? '✓ Saved — Live on site' : saving ? 'Saving…' : 'Save Changes'}
           </button>
@@ -147,3 +227,6 @@ export default function AdminAbout() {
 const inp: React.CSSProperties = { width:'100%', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border-mid)', padding:'0.625rem 0.875rem', fontSize:13, color:'var(--color-text-primary)', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }
 const lbl: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.3rem' }
 const sh: React.CSSProperties = { fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.25rem' }
+
+// Note: story, credentials, and timeline are also edited here via JSON fields in site_settings.
+// They are appended as additional panels below the existing form.

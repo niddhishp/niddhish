@@ -115,8 +115,37 @@ export default function AdminBlogPage() {
           <textarea value={editing.excerpt || ''} onChange={e => setEditing(p => ({ ...p, excerpt: e.target.value }))} style={{ ...inputStyle, height:80, resize:'vertical' as const }} placeholder="Short description shown on blog index..." />
         </div>
 
+        {/* Video embed — YouTube or Vimeo */}
+        <div style={{ marginBottom:'1.5rem' }}>
+          <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }}>
+            Video Embed URL <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'none', letterSpacing:'0.03em', fontWeight:400 }}>— optional, YouTube or Vimeo</span>
+          </label>
+          <input
+            value={(editing as {video_url?: string}).video_url || ''}
+            onChange={e => setEditing(p => ({ ...p, video_url: e.target.value }))}
+            style={inputStyle}
+            placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+          />
+          {(editing as {video_url?: string}).video_url && (() => {
+            const url = (editing as {video_url?: string}).video_url || ''
+            const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
+            const vi = url.match(/vimeo\.com\/(\d+)/)
+            const embedSrc = yt
+              ? `https://www.youtube.com/embed/${yt[1]}`
+              : vi ? `https://player.vimeo.com/video/${vi[1]}?dnt=1` : null
+            return embedSrc ? (
+              <div style={{ position:'relative', aspectRatio:'16/9', background:'#111', marginTop:'0.75rem' }}>
+                <iframe src={embedSrc} style={{ position:'absolute', inset:0, width:'100%', height:'100%', border:'none' }} allow="autoplay; fullscreen" allowFullScreen title="Video preview"/>
+              </div>
+            ) : null
+          })()}
+          <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.4rem', lineHeight:1.5 }}>
+            If provided, the video will be embedded at the top of the post. The content field below is optional for video posts.
+          </p>
+        </div>
+
         <div style={{ marginBottom:'2rem' }}>
-          <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }}>Content (Markdown)</label>
+          <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }}>Content (Markdown) <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'none', letterSpacing:'0.03em', fontWeight:400 }}>— optional if video provided</span></label>
           <textarea value={editing.content || ''} onChange={e => setEditing(p => ({ ...p, content: e.target.value }))} style={{ ...inputStyle, height:360, resize:'vertical' as const, fontFamily:'"JetBrains Mono","Courier New",monospace', fontSize:13 }} placeholder="Write your post in markdown...&#10;&#10;## Heading&#10;**Bold text**&#10;Regular paragraph..." />
         </div>
 

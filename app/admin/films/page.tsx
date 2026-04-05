@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import ImageUpload from '@/components/ImageUpload'
 
@@ -9,19 +9,45 @@ interface DbFilm {
   year: string
   genre: string
   tagline: string
+  synopsis: string
   cast_members: string
   status: 'release' | 'post' | 'production'
   status_label: string
   poster_url: string | null
   sort_order: number
+  bts_images?: string[]
+}
+
+// Small inline upload button for BTS images
+function BtsUpload({ onUpload }: { onUpload: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false)
+  const ref = useRef<HTMLInputElement>(null)
+  const handle = async (file: File) => {
+    setUploading(true)
+    try {
+      const fd = new FormData(); fd.append('file', file); fd.append('bucket', 'bts')
+      const res = await fetch('/api/admin/upload', { method:'POST', body:fd })
+      const d = await res.json()
+      if (d.url) onUpload(d.url)
+    } finally { setUploading(false) }
+  }
+  return (
+    <div
+      onClick={()=>ref.current?.click()}
+      style={{ aspectRatio:'16/9', border:'0.5px dashed var(--color-border)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background:'var(--color-surface-1)', flexDirection:'column', gap:4 }}
+    >
+      <span style={{ fontSize:20, opacity:0.3 }}>+</span>
+      <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{uploading ? 'Uploading…' : 'Add BTS'}</span>
+      <input ref={ref} type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{ const f=e.target.files?.[0]; if(f) handle(f) }}/>
+    </div>
+  )
 }
 
 type View = 'list' | 'edit' | 'new'
-
 const EMPTY: Omit<DbFilm, 'id'> = {
-  title: '', year: '', genre: '', tagline: '', cast_members: '',
+  title: '', year: '', genre: '', tagline: '', synopsis: '', cast_members: '',
   status: 'production', status_label: 'In Production',
-  poster_url: null, sort_order: 99,
+  poster_url: null, sort_order: 99, bts_images: [],
 }
 
 const STATUS_COLOR = {
@@ -60,22 +86,18 @@ export default function AdminFilmsPage() {
     setSaving(true); setError('')
     try {
       const isNew = view === 'new'
+      const prepBody = (body: Partial<DbFilm>) => ({
+        ...body,
+        bts_images: body.bts_images || [],
+      })
       if (isNew) {
         const { id: _id, ...body } = editing as DbFilm
-        const res = await fetch('/api/admin/films', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
+        const res = await fetch('/api/admin/films', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prepBody(body)) })
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Failed to create')
       } else {
         const { id, ...body } = editing as DbFilm
-        const res = await fetch(`/api/admin/films/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
+        const res = await fetch(`/api/admin/films/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(prepBody(body)) })
         const d = await res.json()
         if (!res.ok) throw new Error(d.error || 'Failed to save')
       }
@@ -130,7 +152,26 @@ export default function AdminFilmsPage() {
               </div>
             </div>
             <div><label style={lbl}>Tagline</label><input value={editing.tagline || ''} onChange={upd('tagline')} style={inp} placeholder="One line about the film..." /></div>
-            <div><label style={lbl}>Synopsis</label><textarea rows={4} style={{ ...inp, resize: 'vertical' as const, lineHeight: 1.7 }} placeholder="Film synopsis..." /></div>
+            <div><label style={lbl}>Synopsis</label><textarea value={editing.synopsis||''} onChange={e=>setEditing(p=>({...p,synopsis:e.target.value}))} rows={4} style={{ ...inp, resize: 'vertical' as const, lineHeight: 1.7 }} placeholder="Film synopsis..." /></div>
+            {/* BTS Images */}
+            <div>
+              <label style={lbl}>Behind The Scenes Images</label>
+              <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'0.75rem', lineHeight:1.5 }}>
+                Upload BTS photos — shown on the film detail page. Each uploads to Supabase Storage.
+              </p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'0.75rem', marginBottom:'0.75rem' }}>
+                {(editing.bts_images||[]).map((url:string, i:number) => (
+                  <div key={i} style={{ position:'relative', aspectRatio:'16/9', overflow:'hidden', background:'#111' }}>
+                    <img src={url} alt={`BTS ${i+1}`} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                    <button
+                      onClick={()=>setEditing(p=>({...p,btsImages:(p.bts_images||[]).filter((_:string,j:number)=>j!==i)}))}
+                      style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,0.7)', border:'none', color:'#fff', width:20, height:20, cursor:'pointer', fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:2 }}
+                    >×</button>
+                  </div>
+                ))}
+                <BtsUpload onUpload={(url:string)=>setEditing(p=>({...p,btsImages:[...(p.bts_images||[]),url]}))} />
+              </div>
+            </div>
             <div><label style={lbl}>Cast (comma separated)</label><input value={editing.cast_members || ''} onChange={upd('cast_members')} style={inp} placeholder="Arshad Warsi, Juhi Chawla..." /></div>
             <ImageUpload
               value={editing.poster_url || ''}

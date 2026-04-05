@@ -127,21 +127,34 @@ export default async function AboutPage() {
       <div style={{ background:'var(--color-surface-1)', padding:'5rem clamp(1.25rem,5vw,3.5rem)', marginBottom:'0' }}>
         <div style={{ maxWidth:760 }}>
           <span className="accent-line" style={{ marginBottom:'2rem' }} />
-          <blockquote style={{
-            fontFamily:'var(--font-playfair,serif)',
-            fontSize:'clamp(20px,2.8vw,34px)',
-            fontWeight:400, fontStyle:'italic',
-            color:'var(--color-text-primary)',
-            lineHeight:1.4,
-          }}>
-            &ldquo;Early in my career I directed a film I was genuinely proud of. The client loved it. The agency celebrated. Then the sales numbers came out. Nothing moved. And nobody could explain why.&rdquo;
-          </blockquote>
-          <p style={{ marginTop:'2rem', fontSize:15, lineHeight:1.75, color:'var(--color-text-secondary)' }}>
-            I went back to my psychology training and looked at the film as a behavioral stimulus — not a piece of craft. I found the exact moment where I had made the audience feel good about the brand instead of feel urgency to act. Two shots. Probably cost ₹40,000 to reshoot. That difference is the difference between a commercial and a campaign that works.
-          </p>
-          <p style={{ marginTop:'1.5rem', fontSize:15, lineHeight:1.75, color:'var(--color-text-secondary)' }}>
-            Since then I&apos;ve built every film backwards from the behavioral outcome. The brief is never &lsquo;make something beautiful&rsquo; — it&apos;s &lsquo;make them do this specific thing after they watch.&rsquo; That&apos;s the difference between a director and a behavioral filmmaker. That&apos;s what &ldquo;Story. Engineered.&rdquo; means.
-          </p>
+          {content.about_story ? (
+            (() => {
+              const story = content.about_story.replace(/^"|"$/g, '')
+              const paras = story.split(/\\n\\n|\n\n/)
+              return (
+                <>
+                  <blockquote style={{ fontFamily:'var(--font-playfair,serif)', fontSize:'clamp(20px,2.8vw,34px)', fontWeight:400, fontStyle:'italic', color:'var(--color-text-primary)', lineHeight:1.4 }}>
+                    &ldquo;{paras[0]}&rdquo;
+                  </blockquote>
+                  {paras.slice(1).map((p, i) => (
+                    <p key={i} style={{ marginTop:'1.5rem', fontSize:15, lineHeight:1.75, color:'var(--color-text-secondary)' }}>{p}</p>
+                  ))}
+                </>
+              )
+            })()
+          ) : (
+            <>
+              <blockquote style={{ fontFamily:'var(--font-playfair,serif)', fontSize:'clamp(20px,2.8vw,34px)', fontWeight:400, fontStyle:'italic', color:'var(--color-text-primary)', lineHeight:1.4 }}>
+                &ldquo;Early in my career I directed a film I was genuinely proud of. The client loved it. The agency celebrated. Then the sales numbers came out. Nothing moved. And nobody could explain why.&rdquo;
+              </blockquote>
+              <p style={{ marginTop:'2rem', fontSize:15, lineHeight:1.75, color:'var(--color-text-secondary)' }}>
+                I went back to my psychology training and looked at the film as a behavioral stimulus — not a piece of craft. I found the exact moment where I had made the audience feel good about the brand instead of feel urgency to act. Two shots. Probably cost ₹40,000 to reshoot. That difference is the difference between a commercial and a campaign that works.
+              </p>
+              <p style={{ marginTop:'1.5rem', fontSize:15, lineHeight:1.75, color:'var(--color-text-secondary)' }}>
+                Since then I&apos;ve built every film backwards from the behavioral outcome. The brief is never &lsquo;make something beautiful&rsquo; — it&apos;s &lsquo;make them do this specific thing after they watch.&rsquo; That&apos;s the difference between a director and a behavioral filmmaker. That&apos;s what &ldquo;Story. Engineered.&rdquo; means.
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -149,12 +162,16 @@ export default async function AboutPage() {
       <div style={{ background:'var(--color-bg-light)', padding:'5rem clamp(1.25rem,5vw,3.5rem)' }}>
         <span className="text-label" style={{ display:'block', marginBottom:'2rem', color:'var(--color-text-on-light-muted)' }}>Credentials</span>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:'1px', background:'rgba(13,13,13,0.08)' }}>
-          {CREDS.map((c) => (
-            <div key={c.label} style={{ background:'var(--color-bg-light)', padding:'2rem' }}>
-              <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:18, fontWeight:400, color:'var(--color-text-on-light)', marginBottom:'0.4rem' }}>{c.label}</p>
-              <p style={{ fontSize:13, color:'var(--color-text-on-light-muted)' }}>{c.sub}</p>
-            </div>
-          ))}
+          {(() => {
+            let creds = CREDS
+            try { if (content.about_credentials) creds = JSON.parse(content.about_credentials) } catch {}
+            return creds.map((c) => (
+              <div key={c.label} style={{ background:'var(--color-bg-light)', padding:'2rem' }}>
+                <p style={{ fontFamily:'var(--font-playfair,serif)', fontSize:18, fontWeight:400, color:'var(--color-text-on-light)', marginBottom:'0.4rem' }}>{c.label}</p>
+                <p style={{ fontSize:13, color:'var(--color-text-on-light-muted)' }}>{c.sub}</p>
+              </div>
+            ))
+          })()}
         </div>
       </div>
 
@@ -162,17 +179,21 @@ export default async function AboutPage() {
       <div style={{ padding:'5rem clamp(1.25rem,5vw,3.5rem)' }}>
         <span className="text-label" style={{ display:'block', marginBottom:'2.5rem' }}>Timeline</span>
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-          {TIMELINE.map((item, i) => (
-            <div key={item.year} style={{
-              display:'grid', gridTemplateColumns:'80px 1fr',
-              gap:'2rem', padding:'1.25rem 0',
-              borderBottom: i < TIMELINE.length-1 ? '0.5px solid var(--color-border)' : 'none',
-              alignItems:'start',
-            }}>
-              <span style={{ fontFamily:'var(--font-playfair,serif)', fontSize:15, color:'var(--color-accent)', letterSpacing:'-0.01em', paddingTop:'1px' }}>{item.year}</span>
-              <span style={{ fontSize:15, color:'var(--color-text-secondary)', lineHeight:1.6 }}>{item.event}</span>
-            </div>
-          ))}
+          {(() => {
+            let timeline = TIMELINE
+            try { if (content.about_timeline) timeline = JSON.parse(content.about_timeline) } catch {}
+            return timeline.map((item, i) => (
+              <div key={item.year} style={{
+                display:'grid', gridTemplateColumns:'80px 1fr',
+                gap:'2rem', padding:'1.25rem 0',
+                borderBottom: i < timeline.length-1 ? '0.5px solid var(--color-border)' : 'none',
+                alignItems:'start',
+              }}>
+                <span style={{ fontFamily:'var(--font-playfair,serif)', fontSize:15, color:'var(--color-accent)', letterSpacing:'-0.01em', paddingTop:'1px' }}>{item.year}</span>
+                <span style={{ fontSize:15, color:'var(--color-text-secondary)', lineHeight:1.6 }}>{item.event}</span>
+              </div>
+            ))
+          })()}
         </div>
       </div>
 
