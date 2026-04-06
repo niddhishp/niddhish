@@ -6,6 +6,7 @@ import GrainOverlay from '@/components/GrainOverlay'
 import Footer from '@/components/Footer'
 import CustomCursor from '@/components/CustomCursor'
 import SmoothScroll from '@/components/SmoothScroll'
+import { getSiteContent } from '@/lib/site-content'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -25,31 +26,42 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   metadataBase: new URL('https://niddhish.com'),
   title: {
-    default: 'Niddhish Puuzhakkal — Creativity. Applied.',
+    default: 'Niddhish Puuzhakkal — Film Director, Brand Strategist, Mumbai',
     template: '%s — Niddhish Puuzhakkal',
   },
   description:
-    'Filmmaker. Psychologist. Author. Strategist. Technologist. 200+ commercials, 3 films, 3 books, 80+ brands. Creative intelligence applied to every problem.',
+    'Film director, behavioral psychologist, author and brand strategist based in Mumbai. 200+ TVCs for Nike, Harley Davidson, Maruti, Adidas & 80+ brands. 3 feature films. Where psychology meets cinema.',
   keywords: [
     'Niddhish Puuzhakkal',
-    'film director India',
-    'TVC director Mumbai',
-    'brand strategy',
-    'creative director',
-    'filmmaker psychologist',
+    'film director Mumbai',
+    'TVC director India',
+    'brand film director Mumbai',
+    'advertising director India',
+    'commercial director Mumbai',
+    'behavioral filmmaker',
+    'creative director psychologist',
     'Light Seeker Films',
-    'advertising director',
+    'filmmaker psychologist India',
+    'brand strategy Mumbai',
+    'psychology-based advertising',
+    'hire film director India',
+    'AI filmmaking India',
+    'behavioral brand strategy',
+    'Six Sigma filmmaking',
   ],
   authors: [{ name: 'Niddhish Puuzhakkal', url: 'https://niddhish.com' }],
   creator: 'Niddhish Puuzhakkal',
+  alternates: {
+    canonical: 'https://niddhish.com',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_IN',
     url: 'https://niddhish.com',
     siteName: 'Niddhish Puuzhakkal',
-    title: 'Niddhish Puuzhakkal — Creativity. Applied.',
+    title: 'Niddhish Puuzhakkal — Film Director & Brand Strategist, Mumbai',
     description:
-      'Filmmaker. Psychologist. Author. Strategist. Technologist. Creative intelligence applied to every problem.',
+      'Behavioral filmmaker, psychologist, author and brand strategist. 200+ TVCs, 3 feature films, 80+ brands. Creative intelligence applied to every problem.',
     images: [
       {
         url: '/og-image.jpg',
@@ -63,14 +75,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     site: '@niddhishp',
     creator: '@niddhishp',
-    title: 'Niddhish Puuzhakkal — Creativity. Applied.',
-    description: 'Filmmaker. Psychologist. Author. Strategist. Technologist.',
+    title: 'Niddhish Puuzhakkal — Film Director, Mumbai',
+    description: 'Behavioral filmmaker. Psychologist. Author. Strategist. 200+ TVCs, 3 films, 80+ brands.',
     images: ['/og-image.jpg'],
   },
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true },
+    googleBot: { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large', 'max-video-preview': -1 },
   },
   icons: {
     icon: [
@@ -82,11 +94,18 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const content = await getSiteContent().catch(() => ({} as Record<string, string>))
+  const verifyGoogle = content['verify_google'] || ''
+  const verifyBing = content['verify_bing'] || ''
+  const verifyPinterest = content['verify_pinterest'] || ''
+  const gaId = content['seo_ga_id'] || ''
+  const additionalMeta = content['seo_additional_meta'] || ''
+
   return (
     <html
       lang="en"
@@ -96,6 +115,19 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#0a0a0a" />
         <meta name="color-scheme" content="dark" />
+        {verifyGoogle && <meta name="google-site-verification" content={verifyGoogle} />}
+        {verifyBing && <meta name="msvalidate.01" content={verifyBing} />}
+        {verifyPinterest && <meta name="p:domain_verify" content={verifyPinterest} />}
+        {additionalMeta && <div dangerouslySetInnerHTML={{ __html: additionalMeta }} />}
+        {gaId && gaId.startsWith('G-') && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');` }} />
+          </>
+        )}
+        {gaId && gaId.startsWith('GTM-') && (
+          <script dangerouslySetInnerHTML={{ __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gaId}');` }} />
+        )}
         {/* Kill Vercel toolbar / comments overlay on all envs */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {

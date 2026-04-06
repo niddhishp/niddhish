@@ -112,9 +112,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = await getPost(slug)
   if (!post) return { title: 'Not Found' }
   return {
-    title: `${post.title} — Niddhish Puuzhakkal`,
-    description: post.excerpt,
-    openGraph: { title: post.title, description: post.excerpt, type: 'article' },
+    title: post.title,
+    description: post.excerpt || `${post.title} — written by Niddhish Puuzhakkal, film director and behavioral strategist based in Mumbai.`,
+    authors: [{ name: 'Niddhish Puuzhakkal', url: 'https://niddhish.com' }],
+    alternates: { canonical: `https://niddhish.com/blog/${slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: 'article',
+      publishedTime: post.created_at,
+      authors: ['Niddhish Puuzhakkal'],
+      tags: [post.category, 'film director', 'brand strategy', 'Mumbai'],
+    },
   }
 }
 
@@ -129,8 +138,31 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     catch { return '' }
   }
 
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    author: {
+      '@type': 'Person',
+      name: 'Niddhish Puuzhakkal',
+      url: 'https://niddhish.com',
+      jobTitle: 'Film Director & Brand Strategist',
+    },
+    publisher: {
+      '@type': 'Person',
+      name: 'Niddhish Puuzhakkal',
+      url: 'https://niddhish.com',
+    },
+    datePublished: post.created_at,
+    dateModified: post.created_at,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://niddhish.com/blog/${post.slug}` },
+    keywords: [post.category, 'film director Mumbai', 'brand strategy', 'behavioral filmmaking'],
+  }
+
   return (
     <div style={{ minHeight:'100dvh', background:'var(--color-bg)', paddingTop:'8rem' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <div style={{ padding:'0 clamp(1.25rem,5vw,3.5rem)', marginBottom:'4rem', maxWidth:780 }}>
         <Link href="/blog" style={{ display:'inline-flex', alignItems:'center', gap:8, fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--color-text-tertiary)', textDecoration:'none', marginBottom:'2rem', transition:'color 0.2s' }}>
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M9 5H1M5 9L1 5l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
