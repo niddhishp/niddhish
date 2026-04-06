@@ -1,26 +1,24 @@
 import type { Metadata } from 'next'
 import PressClient from './PressClient'
+import { getSupabaseAdmin } from '@/lib/supabase'
 
 export const metadata: Metadata = {
   title: 'Press & Media — Niddhish Puuzhakkal',
   description: 'Media coverage, podcast appearances, and thought leadership by Niddhish Puuzhakkal.',
 }
 
-export const revalidate = 60
-
-async function getPressItems() {
-  try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://niddhish.com'
-    const res = await fetch(`${base}/api/press`, { next: { revalidate: 60 } })
-    const data = await res.json()
-    return data.items || []
-  } catch { return [] }
-}
+export const revalidate = 0 // always fresh
 
 export default async function PressPage() {
-  const items = await getPressItems()
-  const press = items.filter((i: {kind?: string}) => i.kind !== 'podcast')
-  const podcasts = items.filter((i: {kind?: string}) => i.kind === 'podcast')
+  const { data: items } = await getSupabaseAdmin()
+    .from('press_items')
+    .select('*')
+    .eq('published', true)
+    .order('year', { ascending: false })
+
+  const all = items || []
+  const press = all.filter(i => i.kind !== 'podcast')
+  const podcasts = all.filter(i => i.kind === 'podcast')
 
   return (
     <div style={{ minHeight:'100dvh', background:'var(--color-bg)', paddingTop:'8rem' }}>

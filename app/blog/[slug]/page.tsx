@@ -4,6 +4,8 @@ import Link from 'next/link'
 import ApertureMark from '@/components/ApertureMark'
 import { getSupabaseAdmin } from '@/lib/supabase'
 
+export const revalidate = 0 // always fresh
+
 interface Post {
   id: string; slug: string; title: string; excerpt: string; content: string
   category: string; published: boolean; read_time: string; created_at: string

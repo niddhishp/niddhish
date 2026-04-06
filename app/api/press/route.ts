@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 
-export const revalidate = 60
+export const revalidate = 0
 
 export async function GET() {
   try {
