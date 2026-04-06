@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import ImageUpload from '@/components/ImageUpload'
 
 export default function AdminAbout() {
@@ -165,46 +165,21 @@ export default function AdminAbout() {
           {/* Timeline */}
           <div style={{ border:'0.5px solid var(--color-border)', padding:'1.75rem' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1rem' }}>
-              <h2 style={sh}>Timeline</h2>
+              <div>
+                <h2 style={sh}>Timeline</h2>
+                <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.25rem' }}>Drag ⠿ to reorder. Changes save with the button below.</p>
+              </div>
               <button onClick={() => {
                 let tl: {year:string;event:string}[] = []
                 try { tl = JSON.parse(settings.about_timeline||'[]') } catch {}
                 setSettings(s => ({ ...s, about_timeline: JSON.stringify([...tl, {year:new Date().getFullYear().toString(), event:''}]) }))
               }} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>+ Add Entry</button>
             </div>
-            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'1rem', lineHeight:1.6 }}>
-              Career milestones shown on the About page. Edit year and event, then save.
-            </p>
-            {(() => {
-              let timeline: {year:string;event:string}[] = []
-              try { timeline = JSON.parse(settings.about_timeline || '[]') } catch { timeline = [] }
-              return (
-                <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem' }}>
-                  {timeline.map((t, i) => (
-                    <div key={i} style={{ display:'grid', gridTemplateColumns:'80px 1fr auto', gap:'0.5rem', alignItems:'center' }}>
-                      <input value={t.year} onChange={e => {
-                        const u = [...timeline]; u[i] = { ...u[i], year: e.target.value }
-                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
-                      }} style={{...inp, textAlign:'center', fontFamily:'"JetBrains Mono",monospace'}} placeholder="2024"/>
-                      <input value={t.event} onChange={e => {
-                        const u = [...timeline]; u[i] = { ...u[i], event: e.target.value }
-                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
-                      }} style={inp} placeholder="Career milestone…"/>
-                      <button onClick={() => {
-                        const u = timeline.filter((_,j)=>j!==i)
-                        setSettings(s => ({ ...s, about_timeline: JSON.stringify(u) }))
-                      }} style={{ background:'none', border:'none', color:'rgba(255,80,80,0.5)', cursor:'pointer', fontSize:16, padding:'0 4px', lineHeight:1 }} title="Delete">×</button>
-                    </div>
-                  ))}
-                  {timeline.length === 0 && (
-                    <div style={{ padding:'1.5rem', border:'0.5px dashed var(--color-border)', textAlign:'center' }}>
-                      <p style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:'0.75rem' }}>No timeline entries yet.</p>
-                      <button onClick={() => setSettings(s=>({...s,about_timeline:JSON.stringify([{year:'2003',event:'First TVC direction'}])}))} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>Add First Entry</button>
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
+            <TimelineDnd
+              value={settings.about_timeline || '[]'}
+              onChange={v => setSettings(s => ({ ...s, about_timeline: v }))}
+              inp={inp}
+            />
           </div>
 
           <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
@@ -245,5 +220,92 @@ const inp: React.CSSProperties = { width:'100%', background:'var(--color-surface
 const lbl: React.CSSProperties = { display:'block', fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.3rem' }
 const sh: React.CSSProperties = { fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1.25rem' }
 
+// ── Drag-to-sort timeline ─────────────────────────────────────────────────────
+function TimelineDnd({ value, onChange, inp }: {
+  value: string
+  onChange: (v: string) => void
+  inp: React.CSSProperties
+}) {
+  const [dragIdx, setDragIdx] = React.useState<number|null>(null)
+  const [overIdx, setOverIdx] = React.useState<number|null>(null)
+
+  let timeline: {year:string;event:string}[] = []
+  try { timeline = JSON.parse(value || '[]') } catch { timeline = [] }
+
+  const update = (next: typeof timeline) => onChange(JSON.stringify(next))
+
+  const handleDragStart = (i: number) => setDragIdx(i)
+  const handleDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setOverIdx(i) }
+  const handleDrop = (e: React.DragEvent, i: number) => {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === i) { setDragIdx(null); setOverIdx(null); return }
+    const next = [...timeline]
+    const [moved] = next.splice(dragIdx, 1)
+    next.splice(i, 0, moved)
+    update(next)
+    setDragIdx(null); setOverIdx(null)
+  }
+  const handleDragEnd = () => { setDragIdx(null); setOverIdx(null) }
+
+  if (timeline.length === 0) return (
+    <div style={{ padding:'1.5rem', border:'0.5px dashed var(--color-border)', textAlign:'center' }}>
+      <p style={{ fontSize:12, color:'var(--color-text-tertiary)', marginBottom:'0.75rem' }}>No timeline entries yet.</p>
+      <button onClick={() => onChange(JSON.stringify([{year:'2003',event:'First TVC direction'}]))}
+        style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit' }}>
+        Add First Entry
+      </button>
+    </div>
+  )
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'0.4rem' }}>
+      {timeline.map((t, i) => (
+        <div
+          key={i}
+          draggable
+          onDragStart={() => handleDragStart(i)}
+          onDragOver={e => handleDragOver(e, i)}
+          onDrop={e => handleDrop(e, i)}
+          onDragEnd={handleDragEnd}
+          style={{
+            display:'grid', gridTemplateColumns:'28px 80px 1fr auto', gap:'0.5rem', alignItems:'center',
+            padding:'0.25rem 0',
+            opacity: dragIdx === i ? 0.4 : 1,
+            borderTop: overIdx === i && dragIdx !== i ? '2px solid var(--color-accent)' : '2px solid transparent',
+            transition: 'border-color 0.1s, opacity 0.15s',
+          }}
+        >
+          {/* Drag handle */}
+          <div
+            style={{ cursor:'grab', color:'var(--color-text-tertiary)', fontSize:16, textAlign:'center', userSelect:'none', lineHeight:1, paddingTop:2 }}
+            title="Drag to reorder"
+          >
+            ⠿
+          </div>
+          <input
+            value={t.year}
+            onChange={e => { const u=[...timeline]; u[i]={...u[i],year:e.target.value}; update(u) }}
+            style={{...inp, textAlign:'center', fontFamily:'"JetBrains Mono",monospace', padding:'0.5rem 0.5rem'}}
+            placeholder="2024"
+          />
+          <input
+            value={t.event}
+            onChange={e => { const u=[...timeline]; u[i]={...u[i],event:e.target.value}; update(u) }}
+            style={{...inp, padding:'0.5rem 0.75rem'}}
+            placeholder="Career milestone…"
+          />
+          <div style={{ display:'flex', gap:'0.3rem' }}>
+            <button onClick={() => { if(i===0)return; const u=[...timeline]; [u[i-1],u[i]]=[u[i],u[i-1]]; update(u) }}
+              disabled={i===0} style={{ background:'none', border:'0.5px solid var(--color-border)', color: i===0?'var(--color-text-tertiary)':'var(--color-text-secondary)', cursor:i===0?'default':'pointer', fontSize:12, padding:'3px 7px', lineHeight:1, opacity:i===0?0.3:1 }} title="Move up">↑</button>
+            <button onClick={() => { if(i===timeline.length-1)return; const u=[...timeline]; [u[i],u[i+1]]=[u[i+1],u[i]]; update(u) }}
+              disabled={i===timeline.length-1} style={{ background:'none', border:'0.5px solid var(--color-border)', color: i===timeline.length-1?'var(--color-text-tertiary)':'var(--color-text-secondary)', cursor:i===timeline.length-1?'default':'pointer', fontSize:12, padding:'3px 7px', lineHeight:1, opacity:i===timeline.length-1?0.3:1 }} title="Move down">↓</button>
+            <button onClick={() => { const u=timeline.filter((_,j)=>j!==i); update(u) }}
+              style={{ background:'none', border:'none', color:'rgba(255,80,80,0.5)', cursor:'pointer', fontSize:16, padding:'0 4px', lineHeight:1 }} title="Delete">×</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // Note: story, credentials, and timeline are also edited here via JSON fields in site_settings.
-// They are appended as additional panels below the existing form.
