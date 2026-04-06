@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 
 interface Post {
   id: string
@@ -145,8 +145,8 @@ export default function AdminBlogPage() {
         </div>
 
         <div style={{ marginBottom:'2rem' }}>
-          <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }}>Content (Markdown) <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'none', letterSpacing:'0.03em', fontWeight:400 }}>— optional if video provided</span></label>
-          <textarea value={editing.content || ''} onChange={e => setEditing(p => ({ ...p, content: e.target.value }))} style={{ ...inputStyle, height:360, resize:'vertical' as const, fontFamily:'"JetBrains Mono","Courier New",monospace', fontSize:13 }} placeholder="Write your post in markdown...&#10;&#10;## Heading&#10;**Bold text**&#10;Regular paragraph..." />
+          <label style={{ display:'block', fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'0.4rem' }}>Content <span style={{ fontSize:10, color:'var(--color-text-tertiary)', textTransform:'none', letterSpacing:'0.03em', fontWeight:400 }}>— optional if video provided</span></label>
+          <RichEditor value={editing.content || ''} onChange={v => setEditing(p => ({ ...p, content: v }))} />
         </div>
 
         <div style={{ display:'flex', alignItems:'center', gap:'1.5rem' }}>
@@ -242,4 +242,117 @@ const inputStyle: React.CSSProperties = {
   width:'100%', background:'var(--color-surface-1)', border:'0.5px solid var(--color-border-mid)',
   padding:'0.625rem 0.875rem', fontSize:14, color:'var(--color-text-primary)',
   fontFamily:'inherit', outline:'none', boxSizing:'border-box' as const,
+}
+
+// ── Rich text editor with markdown toolbar ────────────────────────────────────
+function RichEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const [tab, setTab] = useState<'write'|'preview'>('write')
+
+  const wrap = useCallback((before: string, after: string, placeholder = '') => {
+    const el = ref.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const sel = value.slice(start, end) || placeholder
+    const next = value.slice(0, start) + before + sel + after + value.slice(end)
+    onChange(next)
+    setTimeout(() => {
+      el.focus()
+      el.setSelectionRange(start + before.length, start + before.length + sel.length)
+    }, 0)
+  }, [value, onChange])
+
+  const prefix = useCallback((mark: string) => {
+    const el = ref.current
+    if (!el) return
+    const start = el.selectionStart
+    const lineStart = value.lastIndexOf('\n', start - 1) + 1
+    const already = value.slice(lineStart).startsWith(mark)
+    const next = already
+      ? value.slice(0, lineStart) + value.slice(lineStart + mark.length)
+      : value.slice(0, lineStart) + mark + value.slice(lineStart)
+    onChange(next)
+    setTimeout(() => { el.focus() }, 0)
+  }, [value, onChange])
+
+  const tools: { label: string; title: string; action: () => void }[] = [
+    { label: 'B',       title: 'Bold (Ctrl+B)',        action: () => wrap('**','**','bold text') },
+    { label: 'I',       title: 'Italic (Ctrl+I)',       action: () => wrap('*','*','italic text') },
+    { label: 'B+I',     title: 'Bold & Italic',         action: () => wrap('***','***','bold italic') },
+    { label: 'H2',      title: 'Heading 2',             action: () => prefix('## ') },
+    { label: 'H3',      title: 'Heading 3',             action: () => prefix('### ') },
+    { label: '❝',       title: 'Blockquote',            action: () => prefix('> ') },
+    { label: '• List',  title: 'Bullet list',           action: () => prefix('- ') },
+    { label: '1. List', title: 'Numbered list',         action: () => prefix('1. ') },
+    { label: '—',       title: 'Divider',               action: () => { const el = ref.current; if(!el) return; const p = el.selectionStart; const n = value.slice(0,p) + '\n---\n' + value.slice(p); onChange(n) } },
+    { label: 'Link',    title: 'Insert link',           action: () => wrap('[','](https://)','link text') },
+  ]
+
+  // Keyboard shortcuts
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const mod = e.metaKey || e.ctrlKey
+    if (mod && e.key === 'b') { e.preventDefault(); wrap('**','**','bold text') }
+    if (mod && e.key === 'i') { e.preventDefault(); wrap('*','*','italic text') }
+  }
+
+  // Preview renderer (simplified)
+  const preview = value
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^## (.+)$/gm, '<h2 style="font-size:20px;font-family:serif;margin:1.5rem 0 0.5rem;color:#f0ede8">$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3 style="font-size:17px;font-family:serif;margin:1.2rem 0 0.4rem;color:#f0ede8">$1</h3>')
+    .replace(/^> (.+)$/gm, '<blockquote style="border-left:2px solid #e8683a;padding-left:1rem;margin:0 0 1rem;font-style:italic;color:#aaa">$1</blockquote>')
+    .replace(/^[-*] (.+)$/gm, '<li style="margin-left:1.5rem;color:#aaa;list-style:disc">$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li style="margin-left:1.5rem;color:#aaa;list-style:decimal">$1</li>')
+    .replace(/^---$/gm, '<hr style="border:none;border-top:0.5px solid #333;margin:1.5rem 0"/>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#e8683a" target="_blank">$1</a>')
+    .split('\n\n').map(b => b.startsWith('<h') || b.startsWith('<blockquote') || b.startsWith('<li') || b.startsWith('<hr') ? b : `<p style="color:#888;line-height:1.8;margin-bottom:1rem">${b}</p>`).join('')
+
+  return (
+    <div style={{ border:'0.5px solid var(--color-border-mid)' }}>
+      {/* Tab bar + toolbar */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid var(--color-border)', background:'var(--color-bg)', padding:'0 0.5rem' }}>
+        <div style={{ display:'flex' }}>
+          {(['write','preview'] as const).map(t => (
+            <button key={t} onClick={()=>setTab(t)} style={{ fontSize:11, padding:'0.5rem 0.875rem', background:'transparent', border:'none', borderBottom: tab===t ? '1.5px solid var(--color-accent)' : '1.5px solid transparent', color: tab===t ? 'var(--color-accent)' : 'var(--color-text-tertiary)', cursor:'pointer', fontFamily:'inherit', letterSpacing:'0.04em', textTransform:'uppercase' }}>
+              {t}
+            </button>
+          ))}
+        </div>
+        {tab === 'write' && (
+          <div style={{ display:'flex', gap:'2px', flexWrap:'wrap', padding:'4px 0' }}>
+            {tools.map(t => (
+              <button key={t.label} onClick={t.action} title={t.title} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-text-secondary)', padding:'3px 7px', fontSize:11, cursor:'pointer', fontFamily:t.label==='B'?'serif':'inherit', fontWeight:t.label==='B'||t.label==='B+I'?700:400, fontStyle:t.label==='I'||t.label==='B+I'?'italic':'normal', borderRadius:1, transition:'background 0.1s' }}
+                onMouseEnter={e=>(e.currentTarget.style.background='var(--color-surface-1)')}
+                onMouseLeave={e=>(e.currentTarget.style.background='none')}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* Editor / Preview */}
+      {tab === 'write' ? (
+        <textarea
+          ref={ref}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          style={{ width:'100%', minHeight:360, background:'var(--color-surface-1)', border:'none', padding:'1rem', fontSize:14, color:'var(--color-text-primary)', fontFamily:'"JetBrains Mono","Courier New",monospace', outline:'none', boxSizing:'border-box', resize:'vertical', lineHeight:1.7 }}
+          placeholder={"Write your post...\n\n## Use headings\n**Bold** and *italic* text\n- Bullet lists\n> Blockquotes"}
+          spellCheck
+        />
+      ) : (
+        <div style={{ minHeight:360, padding:'1.25rem', background:'var(--color-surface-1)', fontSize:15, lineHeight:1.8 }}
+          dangerouslySetInnerHTML={{ __html: preview || '<p style="color:#555;font-style:italic">Nothing to preview yet.</p>' }}
+        />
+      )}
+      <div style={{ padding:'0.4rem 0.875rem', background:'var(--color-bg)', borderTop:'0.5px solid var(--color-border)', fontSize:10, color:'var(--color-text-tertiary)', letterSpacing:'0.06em' }}>
+        MARKDOWN · **bold** · *italic* · ## heading · &gt; quote · - list · [link](url) · Ctrl+B/I
+      </div>
+    </div>
+  )
 }
