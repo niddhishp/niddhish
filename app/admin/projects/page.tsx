@@ -24,7 +24,37 @@ export default function AdminProjects() {
   const [editing, setEditing] = useState<Partial<DbVideo>>({})
   const [saving, setSaving] = useState(false)
   const [fetchingThumb, setFetchingThumb] = useState(false)
+  const [batchFetching, setBatchFetching] = useState(false)
+  const [batchProgress, setBatchProgress] = useState('')
   const [error, setError] = useState('')
+
+  const batchFetchThumbs = async () => {
+    const missing = videos.filter(v => !v.thumbnail_url && v.source === 'vimeo')
+    if (!missing.length) return
+    setBatchFetching(true)
+    let done = 0
+    for (const v of missing) {
+      setBatchProgress(`${done}/${missing.length}`)
+      try {
+        const res = await fetch(
+          `https://vimeo.com/api/oembed.json?url=${encodeURIComponent('https://vimeo.com/'+v.video_id)}&width=1280`,
+          { headers: { Accept: 'application/json' } }
+        )
+        if (res.ok) {
+          const data = await res.json()
+          const thumb = (data.thumbnail_url||'').replace(/_\d+$/, '_1280')
+          if (thumb) {
+            await fetch(`/api/admin/videos/${v.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ thumbnail_url: thumb }) })
+            setVideos(prev => prev.map(x => x.id===v.id ? {...x,thumbnail_url:thumb} : x))
+          }
+        }
+      } catch {}
+      done++
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 300))
+    }
+    setBatchFetching(false); setBatchProgress('')
+  }
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('all')
   const [del, setDel] = useState<string|null>(null)
@@ -43,14 +73,23 @@ export default function AdminProjects() {
 
   const fetchVimeoThumb = async () => {
     if (!editing.video_id || editing.source !== 'vimeo') return
-    setFetchingThumb(true)
+    setFetchingThumb(true); setError('')
     try {
-      const res = await fetch(`/api/vimeo-thumb/${editing.video_id}`)
+      // Fetch client-side — Vimeo blocks server-side requests from Vercel IPs
+      // Need the full vimeo URL including any hash params the user stored
+      const vimeoUrl = `https://vimeo.com/${editing.video_id}`
+      const res = await fetch(
+        `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(vimeoUrl)}&width=1280`,
+        { headers: { 'Accept': 'application/json' } }
+      )
+      if (!res.ok) { setError(`Vimeo returned ${res.status} — check the video ID`); return }
       const data = await res.json()
-      if (data.thumbnail) setEditing(p => ({ ...p, thumbnail_url: data.thumbnail }))
-      else setError('Could not fetch thumbnail — video may be private')
-    } catch { setError('Thumbnail fetch failed') }
-    finally { setFetchingThumb(false) }
+      const thumb = (data.thumbnail_url || '').replace(/_\d+$/, '_1280')
+      if (thumb) setEditing(p => ({ ...p, thumbnail_url: thumb }))
+      else setError('No thumbnail returned by Vimeo')
+    } catch(e) {
+      setError('Fetch failed — check browser console or paste the URL manually')
+    } finally { setFetchingThumb(false) }
   }
 
   const save = async () => {
@@ -181,9 +220,18 @@ export default function AdminProjects() {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
         <div>
           <h1 style={h1}>Projects</h1>
-          <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>{loading ? 'Loading…' : `${videos.length} videos — thumbnails stored in Supabase`}</p>
+          <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>
+            {loading ? 'Loading…' : `${videos.length} videos — ${videos.filter(v=>!v.thumbnail_url&&v.source==='vimeo').length} missing Vimeo thumbnails`}
+          </p>
         </div>
-        <button onClick={()=>{ setEditing({...EMPTY,category:cats[0]?.slug||''}); setView('new') }} className="btn-primary">+ Add Video</button>
+        <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
+          {videos.filter(v=>!v.thumbnail_url&&v.source==='vimeo').length > 0 && (
+            <button onClick={batchFetchThumbs} disabled={batchFetching} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'rgba(255,160,50,0.9)', padding:'0.5rem 1rem', cursor:'pointer', fontSize:12, fontFamily:'inherit', opacity:batchFetching?0.6:1 }}>
+              {batchFetching ? `Fetching… ${batchProgress}` : `⟳ Auto-fetch ${videos.filter(v=>!v.thumbnail_url&&v.source==='vimeo').length} missing thumbnails`}
+            </button>
+          )}
+          <button onClick={()=>{ setEditing({...EMPTY,category:cats[0]?.slug||''}); setView('new') }} className="btn-primary">+ Add Video</button>
+        </div>
       </div>
       {error && <div style={{ ...errBox, marginBottom:'1.5rem' }}>{error}</div>}
 
