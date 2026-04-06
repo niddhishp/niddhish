@@ -74,16 +74,10 @@ export default function WorkReel() {
       .catch(() => {})
 
     // Supabase thumbnail overrides
-    fetch('/api/admin/videos')
+    // Supabase thumbnail overrides (saved by admin → thumbnail_overrides table)
+    fetch('/api/admin/thumbnails')
       .then(r => r.json())
-      .then(d => {
-        if (!d.videos?.length) return
-        const overrides: Record<string, string> = {}
-        d.videos.forEach((v: { video_id: string; thumbnail_url?: string }) => {
-          if (v.thumbnail_url) overrides[v.video_id] = v.thumbnail_url
-        })
-        setThumbOverrides(overrides)
-      })
+      .then(d => { if (d.overrides) setThumbOverrides(d.overrides) })
       .catch(() => {})
   }, [])
 
