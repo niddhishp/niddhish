@@ -1,34 +1,35 @@
 import { MetadataRoute } from 'next'
 import { getSupabaseAdmin } from '@/lib/supabase'
 
-const BASE = 'https://niddhish.com'
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = 'https://niddhish.com'
+  const now = new Date().toISOString()
+
   // Static pages
-  const static_pages: MetadataRoute.Sitemap = [
-    { url: BASE,            lastModified: new Date(), changeFrequency: 'weekly',  priority: 1.0 },
-    { url: `${BASE}/work`,  lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.9 },
-    { url: `${BASE}/about`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE}/blog`,  lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.8 },
-    { url: `${BASE}/press`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${BASE}/collaborate`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE}/films/ego`,      lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE}/films/palkon-pe`,lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${BASE}/films/canvas`,   lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: base, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
+    { url: `${base}/work`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${base}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${base}/press`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${base}/collaborate`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
+    { url: `${base}/films/ego`, lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${base}/films/palkon-pe`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${base}/films/canvas`, lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
   ]
 
-  // Blog posts from Supabase
+  // Blog posts
   try {
-    const { data } = await getSupabaseAdmin()
+    const { data: posts } = await getSupabaseAdmin()
       .from('blog_posts').select('slug, created_at').eq('published', true)
-    const blog_pages: MetadataRoute.Sitemap = (data || []).map(p => ({
-      url: `${BASE}/blog/${p.slug}`,
-      lastModified: new Date(p.created_at),
+    const blogPages: MetadataRoute.Sitemap = (posts || []).map(p => ({
+      url: `${base}/blog/${p.slug}`,
+      lastModified: p.created_at,
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     }))
-    return [...static_pages, ...blog_pages]
+    return [...staticPages, ...blogPages]
   } catch {
-    return static_pages
+    return staticPages
   }
 }
