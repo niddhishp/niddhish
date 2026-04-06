@@ -15,7 +15,7 @@ async function getPost(slug: string): Promise<Post | null> {
   return data ?? null
 }
 
-async function getOtherPosts(slug: string): Promise<Post[]> {
+async function getOtherPosts(slug: string): Promise<Pick<Post,'id'|'slug'|'title'|'category'|'created_at'>[]> {
   const { data } = await getSupabaseAdmin()
     .from('blog_posts').select('id,slug,title,category,created_at')
     .eq('published', true).neq('slug', slug).order('created_at', { ascending: false }).limit(3)
