@@ -13,10 +13,15 @@ interface PressItem {
   podcast_show?: string
   podcast_host?: string
   published: boolean
+  embed_url?: string
+  media_url?: string
+  media_type?: string
+  duration?: string
+  image_url?: string
 }
 
 const TYPES = ['Feature Interview','Profile','Cover Story','Review','Mention','Award Coverage','Op-Ed']
-const EMPTY: Omit<PressItem,'id'> = { outlet:'', title:'', summary:'', type:'Feature Interview', year: new Date().getFullYear().toString(), url:'', kind:'press', podcast_show:'', podcast_host:'', published:true }
+const EMPTY: Omit<PressItem,'id'> = { outlet:'', title:'', summary:'', type:'Feature Interview', year: new Date().getFullYear().toString(), url:'', kind:'press', podcast_show:'', podcast_host:'', published:true, embed_url:'', media_url:'', duration:'', image_url:'' }
 
 export default function AdminPressPage() {
   const [items, setItems] = useState<PressItem[]>([])
@@ -85,8 +90,8 @@ export default function AdminPressPage() {
           <div><label style={lbl}>Year</label><input value={editing.year||''} onChange={upd('year')} style={inp} placeholder="2025"/></div>
           {editing.kind==='podcast' && (
             <>
-              <div><label style={lbl}>Show Name</label><input value={editing.podcast_show||''} onChange={upd('podcast_show')} style={inp} placeholder="The Creative Brief"/></div>
-              <div><label style={lbl}>Host</label><input value={editing.podcast_host||''} onChange={upd('podcast_host')} style={inp} placeholder="John Smith"/></div>
+              <div><label style={lbl}>Show Name</label><input value={(editing as {podcast_show?:string}).podcast_show||''} onChange={upd('podcast_show')} style={inp} placeholder="The Creative Brief"/></div>
+              <div><label style={lbl}>Host</label><input value={(editing as {podcast_host?:string}).podcast_host||''} onChange={upd('podcast_host')} style={inp} placeholder="John Smith"/></div>
             </>
           )}
           {editing.kind==='press' && (
@@ -99,8 +104,64 @@ export default function AdminPressPage() {
           )}
           <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Title *</label><input value={editing.title||''} onChange={upd('title')} style={inp} placeholder="Article or episode title"/></div>
           <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Summary</label><textarea value={editing.summary||''} onChange={upd('summary')} rows={3} style={{...inp,resize:'vertical' as const}} placeholder="Brief description..."/></div>
-          <div style={{ gridColumn:'1/-1' }}><label style={lbl}>URL (link to article / episode)</label><input value={editing.url||''} onChange={upd('url')} style={inp} placeholder="https://..."/></div>
+          <div style={{ gridColumn:'1/-1' }}><label style={lbl}>URL (link to article / episode page)</label><input value={editing.url||''} onChange={upd('url')} style={inp} placeholder="https://..."/></div>
+          <div style={{ gridColumn:'1/-1' }}>
+            <label style={lbl}>Thumbnail Image URL</label>
+            <input value={editing.image_url||''} onChange={upd('image_url')} style={inp} placeholder="https://... paste any image URL — article cover, podcast art, screenshot"/>
+            {editing.image_url && (
+              <img src={editing.image_url} alt="preview" onError={e=>(e.currentTarget.style.display='none')} style={{ width:120, height:80, objectFit:'cover', marginTop:'0.5rem', display:'block', border:'0.5px solid var(--color-border)' }}/>
+            )}
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.3rem' }}>Shown as card thumbnail on the press page. Use article hero image, podcast cover art, or a screenshot.</p>
+          </div>
         </div>
+
+        {/* Media embed — video or audio */}
+        <div style={{ border:'0.5px solid var(--color-border)', padding:'1.25rem' }}>
+          <h3 style={{ fontSize:11, fontWeight:500, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-text-tertiary)', marginBottom:'1rem' }}>
+            {editing.kind==='podcast' ? 'Podcast Media' : 'Article Media'}
+          </h3>
+          <div style={{ display:'flex', flexDirection:'column', gap:'0.875rem' }}>
+            <div>
+              <label style={lbl}>Embed URL — YouTube, Vimeo, Spotify, Apple Podcasts, SoundCloud</label>
+              <input value={(editing as {embed_url?:string}).embed_url||''} onChange={upd('embed_url')} style={inp} placeholder="https://youtube.com/watch?v=... or https://open.spotify.com/episode/..."/>
+              <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.3rem' }}>
+                Paste a YouTube/Vimeo URL for video episodes, or a Spotify/Apple Podcasts episode URL for audio. Renders as an embedded player on the press page.
+              </p>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.875rem' }}>
+              <div>
+                <label style={lbl}>Direct Audio/Video File URL (optional)</label>
+                <input value={(editing as {media_url?:string}).media_url||''} onChange={upd('media_url')} style={inp} placeholder="https://... .mp3 or .mp4"/>
+                <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.3rem' }}>
+                  For self-hosted files. Upload to Supabase Storage and paste the public URL here.
+                </p>
+              </div>
+              <div>
+                <label style={lbl}>Duration</label>
+                <input value={(editing as {duration?:string}).duration||''} onChange={upd('duration')} style={inp} placeholder="1h 24m"/>
+              </div>
+            </div>
+            {/* Preview embed if URL is present */}
+            {(() => {
+              const embedUrl = (editing as {embed_url?:string}).embed_url || ''
+              if (!embedUrl) return null
+              const ytMatch = embedUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)
+              const viMatch = embedUrl.match(/vimeo\.com\/(\d+)/)
+              const spMatch = embedUrl.match(/open\.spotify\.com\/episode\/([^?]+)/)
+              let src = ''
+              if (ytMatch) src = `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`
+              else if (viMatch) src = `https://player.vimeo.com/video/${viMatch[1]}?dnt=1`
+              else if (spMatch) src = `https://open.spotify.com/embed/episode/${spMatch[1]}`
+              if (!src) return <p style={{ fontSize:11, color:'rgba(255,160,50,0.8)', marginTop:'0.5rem' }}>Paste a YouTube, Vimeo or Spotify URL to preview</p>
+              return (
+                <div style={{ marginTop:'0.75rem', position:'relative', aspectRatio: spMatch ? '16/3' : '16/9', background:'#000' }}>
+                  <iframe src={src} style={{ position:'absolute', inset:0, width:'100%', height:'100%', border:'none' }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title="Preview"/>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+
         <label style={{ display:'flex', alignItems:'center', gap:'0.5rem', fontSize:14, color:'var(--color-text-secondary)', cursor:'pointer' }}>
           <input type="checkbox" checked={!!editing.published} onChange={e=>setEditing(p=>({...p,published:e.target.checked}))}/>
           Visible on site

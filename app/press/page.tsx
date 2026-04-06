@@ -3,7 +3,7 @@ import PressClient from './PressClient'
 
 export const metadata: Metadata = {
   title: 'Press & Media — Niddhish Puuzhakkal',
-  description: 'Media coverage, podcast appearances, and thought leadership by Niddhish Puuzhakkal — film director and brand strategist, Mumbai.',
+  description: 'Media coverage, podcast appearances, and thought leadership by Niddhish Puuzhakkal.',
 }
 
 export const revalidate = 60
@@ -23,8 +23,8 @@ export default async function PressPage() {
   const podcasts = items.filter((i: {kind?: string}) => i.kind === 'podcast')
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingTop: '8rem' }}>
-      <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '4rem' }}>
+    <div style={{ minHeight:'100dvh', background:'var(--color-bg)', paddingTop:'8rem' }}>
+      <div style={{ padding:'0 clamp(1.25rem,5vw,3.5rem)', marginBottom:'4rem' }}>
         <div style={{ fontFamily:'"JetBrains Mono","Courier New",monospace', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(232,104,58,0.5)', marginBottom:'1rem' }}>SCENE 07 — THE RECORD</div>
         <span className="text-label" style={{ display:'block', marginBottom:'0.75rem' }}>Press & Media</span>
         <h1 className="text-display-md" style={{ color:'var(--color-text-primary)', maxWidth:640 }}>

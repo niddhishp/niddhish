@@ -6,341 +6,204 @@ import { motion, AnimatePresence } from 'framer-motion'
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 
 export interface PressItem {
-  outlet: string
-  title: string
-  type: string
-  year: string
-  url: string
-  summary: string
+  id: string; outlet: string; title: string; type: string; year: string
+  url: string; summary: string; kind: string; podcast_show?: string
+  podcast_host?: string; embed_url?: string; media_url?: string
+  duration?: string; image_url?: string
 }
 
-export interface PodcastItem {
-  show: string
-  episode: string
-  host: string
-  year: string
-  url: string
-  summary: string
+interface ActiveItem extends PressItem {
+  subtitle: string; meta: string
 }
 
-interface ActiveItem {
-  kind: 'press' | 'podcast'
-  title: string
-  subtitle: string
-  meta: string
-  summary: string
-  url: string
+function getEmbedSrc(url: string): string | null {
+  if (!url) return null
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)
+  if (yt) return `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0`
+  const vi = url.match(/vimeo\.com\/(\d+)/)
+  if (vi) return `https://player.vimeo.com/video/${vi[1]}?dnt=1&title=0&byline=0`
+  const sp = url.match(/open\.spotify\.com\/episode\/([^?]+)/)
+  if (sp) return `https://open.spotify.com/embed/episode/${sp[1]}`
+  return null
 }
 
-export default function PressClient({
-  press,
-  podcasts,
-}: {
-  press: PressItem[]
-  podcasts: PodcastItem[]
-}) {
+export default function PressClient({ press, podcasts }: { press: PressItem[]; podcasts: PressItem[] }) {
   const [active, setActive] = useState<ActiveItem | null>(null)
 
-  const openPress = (item: PressItem) => {
+  const openItem = (item: PressItem) => {
+    const isPodcast = item.kind === 'podcast'
     setActive({
-      kind: 'press',
-      title: item.title,
-      subtitle: item.outlet,
-      meta: `${item.type} · ${item.year}`,
-      summary: item.summary,
-      url: item.url,
-    })
-  }
-
-  const openPodcast = (pod: PodcastItem) => {
-    setActive({
-      kind: 'podcast',
-      title: pod.episode,
-      subtitle: pod.show,
-      meta: `Hosted by ${pod.host} · ${pod.year}`,
-      summary: pod.summary,
-      url: pod.url,
+      ...item,
+      subtitle: isPodcast ? (item.podcast_show || item.outlet) : item.outlet,
+      meta: isPodcast
+        ? `${item.podcast_host ? `Hosted by ${item.podcast_host} · ` : ''}${item.year}${item.duration ? ` · ${item.duration}` : ''}`
+        : `${item.type} · ${item.year}`,
     })
   }
 
   const hasRealUrl = active?.url && active.url !== '#'
+  const embedSrc = active?.embed_url ? getEmbedSrc(active.embed_url) : null
+  const isSpotify = embedSrc?.includes('spotify')
+
+  const allItems = [...press, ...podcasts]
+  const hasPodcasts = podcasts.length > 0
 
   return (
     <>
-      {/* Press articles */}
-      <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '5rem' }}>
-        <span className="text-label" style={{ display: 'block', marginBottom: '2rem' }}>Articles & Features</span>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          gap: 1,
-          background: 'var(--color-border)',
-        }}>
-          {press.map(item => (
-            <button
-              key={item.title}
-              onClick={() => openPress(item)}
-              style={{
-                display: 'block', padding: '2rem',
-                background: 'var(--color-bg)',
-                border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-1)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-bg)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)' }}>
-                  {item.outlet}
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)', letterSpacing: '0.06em' }}>
-                  {item.type} · {item.year}
-                </span>
-              </div>
-              <h3 style={{
-                fontFamily: 'var(--font-playfair,serif)',
-                fontSize: 16, fontWeight: 400, lineHeight: 1.4,
-                color: 'var(--color-text-primary)',
-                marginBottom: '0.75rem',
-              }}>
-                {item.title}
-              </h3>
-              <span style={{
-                fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'var(--color-accent)', display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                Read more
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                  <path d="M1 4h6M4 1l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* All press items in a card grid with thumbnails */}
+      <div style={{ padding:'0 clamp(1.25rem,5vw,3.5rem)', marginBottom:'5rem' }}>
+        {press.length > 0 && (
+          <>
+            <span className="text-label" style={{ display:'block', marginBottom:'2rem' }}>Articles & Features</span>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:'1px', background:'var(--color-border)', border:'0.5px solid var(--color-border)' }}>
+              {press.map((item, i) => (
+                <PressCard key={item.id} item={item} index={i} onClick={() => openItem(item)} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {hasPodcasts && (
+          <>
+            <span className="text-label" style={{ display:'block', marginBottom:'2rem', marginTop:'4rem' }}>Podcasts & Interviews</span>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:'1px', background:'var(--color-border)', border:'0.5px solid var(--color-border)' }}>
+              {podcasts.map((item, i) => (
+                <PressCard key={item.id} item={item} index={i} onClick={() => openItem(item)} isPodcast />
+              ))}
+            </div>
+          </>
+        )}
+
+        {allItems.length === 0 && (
+          <div style={{ padding:'4rem', textAlign:'center', border:'0.5px dashed var(--color-border)', color:'var(--color-text-tertiary)', fontSize:14 }}>
+            No press items yet. Add them in Admin → Press.
+          </div>
+        )}
       </div>
 
-      {/* Podcasts */}
-      <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', marginBottom: '5rem' }}>
-        <span className="text-label" style={{ display: 'block', marginBottom: '2rem' }}>Podcast Appearances</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderTop: '0.5px solid var(--color-border)' }}>
-          {podcasts.map(pod => (
-            <button
-              key={pod.episode}
-              onClick={() => openPodcast(pod)}
-              style={{
-                display: 'grid', gridTemplateColumns: '1fr auto',
-                alignItems: 'center', gap: '2rem',
-                padding: '2rem 0',
-                borderTop: 'none', borderLeft: 'none', borderRight: 'none',
-                borderBottom: '0.5px solid var(--color-border)',
-                background: 'transparent',
-                cursor: 'pointer', textAlign: 'left', width: '100%',
-                transition: 'opacity 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
-              <div>
-                <p style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-text-tertiary)', marginBottom: '0.4rem' }}>
-                  {pod.show} · hosted by {pod.host}
-                </p>
-                <h3 style={{
-                  fontFamily: 'var(--font-playfair,serif)',
-                  fontSize: 17, fontWeight: 400, lineHeight: 1.3,
-                  color: 'var(--color-text-primary)',
-                }}>
-                  {pod.episode}
-                </h3>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>{pod.year}</span>
-                <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  border: '0.5px solid var(--color-border-mid)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'rgba(232,104,58,0.08)',
-                  transition: 'background 0.2s',
-                }}>
-                  <svg width="10" height="12" viewBox="0 0 10 12" fill="var(--color-accent)">
-                    <path d="M1 1l8 5-8 5V1z"/>
-                  </svg>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Detail drawer overlay */}
+      {/* Detail panel */}
       <AnimatePresence>
         {active && (
-          <>
-            {/* Backdrop */}
+          <motion.div
+            key="press-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position:'fixed', inset:0, zIndex:200, background:'rgba(6,6,6,0.92)', backdropFilter:'blur(16px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'1.5rem' }}
+            onClick={() => setActive(null)}
+          >
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              onClick={() => setActive(null)}
-              style={{
-                position: 'fixed', inset: 0,
-                background: 'rgba(0,0,0,0.72)',
-                backdropFilter: 'blur(6px)',
-                zIndex: 100,
-                cursor: 'pointer',
-              }}
-            />
-
-            {/* Panel */}
-            <motion.div
-              initial={{ x: '100%', opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '100%', opacity: 0 }}
-              transition={{ duration: 0.45, ease: EASE }}
-              style={{
-                position: 'fixed', top: 0, right: 0, bottom: 0,
-                width: 'min(520px, 94vw)',
-                background: '#0e0e0e',
-                borderLeft: '0.5px solid var(--color-border-mid)',
-                zIndex: 101,
-                display: 'flex', flexDirection: 'column',
-                overflowY: 'auto',
-              }}
+              initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:16 }}
+              transition={{ duration:0.35, ease:EASE }}
+              onClick={e => e.stopPropagation()}
+              style={{ width:'100%', maxWidth:720, background:'var(--color-surface-1)', border:'0.5px solid var(--color-border)', maxHeight:'90vh', overflowY:'auto' }}
             >
-              {/* Panel header */}
-              <div style={{
-                padding: '2rem 2rem 1.5rem',
-                borderBottom: '0.5px solid var(--color-border)',
-                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem',
-              }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{
-                      fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
-                      color: 'var(--color-accent)',
-                    }}>
-                      {active.subtitle}
-                    </span>
-                    <span style={{ fontSize: 9, color: 'var(--color-text-tertiary)' }}>·</span>
-                    <span style={{ fontSize: 9, letterSpacing: '0.08em', color: 'var(--color-text-tertiary)', textTransform: 'uppercase' }}>
-                      {active.meta}
-                    </span>
-                  </div>
+              {/* Thumbnail or embed */}
+              {embedSrc ? (
+                <div style={{ position:'relative', aspectRatio: isSpotify ? '16/3.5' : '16/9', background:'#000' }}>
+                  <iframe src={embedSrc} style={{ position:'absolute', inset:0, width:'100%', height:'100%', border:'none' }} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen title={active.title}/>
                 </div>
-                <button
-                  onClick={() => setActive(null)}
-                  style={{
-                    background: 'none', border: '0.5px solid var(--color-border)',
-                    color: 'var(--color-text-tertiary)',
-                    width: 32, height: 32, borderRadius: 2,
-                    cursor: 'pointer', fontSize: 16, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, transition: 'border-color 0.2s',
-                  }}
-                  aria-label="Close"
-                >
-                  ×
-                </button>
-              </div>
+              ) : active.image_url ? (
+                <div style={{ position:'relative', aspectRatio:'16/7', overflow:'hidden' }}>
+                  <img src={active.image_url} alt={active.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                  <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(18,18,18,0.9) 0%, transparent 60%)' }}/>
+                </div>
+              ) : null}
 
-              {/* Panel body */}
-              <div style={{ padding: '2rem', flex: 1 }}>
-                {/* Kind label */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '4px 12px',
-                    border: '0.5px solid var(--color-border-mid)',
-                    borderRadius: 1,
-                    fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase',
-                    color: active.kind === 'podcast' ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
-                  }}>
-                    {active.kind === 'podcast' ? (
-                      <>
-                        <svg width="9" height="11" viewBox="0 0 9 11" fill="var(--color-accent)">
-                          <path d="M1 1l7 4.5-7 4.5V1z"/>
-                        </svg>
-                        Podcast
-                      </>
-                    ) : (
-                      <>
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                          <path d="M1 5h8M5 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        Press
-                      </>
-                    )}
-                  </div>
+              {/* Content */}
+              <div style={{ padding:'2rem' }}>
+                <button onClick={() => setActive(null)} style={{ position:'absolute', top:'1rem', right:'1rem', background:'none', border:'none', color:'var(--color-text-tertiary)', cursor:'pointer', fontSize:20, lineHeight:1 }} aria-label="Close">×</button>
+
+                <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'1rem', flexWrap:'wrap' }}>
+                  <span style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color: active.kind==='podcast' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }}>
+                    {active.kind === 'podcast' ? '🎙 Podcast' : '📰 Press'}
+                  </span>
+                  <span style={{ fontSize:10, color:'var(--color-border-mid)' }}>·</span>
+                  <span style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>{active.meta}</span>
                 </div>
 
-                <h2 style={{
-                  fontFamily: 'var(--font-playfair,serif)',
-                  fontSize: 'clamp(20px,2.8vw,26px)',
-                  fontWeight: 400, lineHeight: 1.25, letterSpacing: '-0.01em',
-                  color: 'var(--color-text-primary)',
-                  marginBottom: '1.5rem',
-                }}>
+                <h2 style={{ fontFamily:'var(--font-playfair,serif)', fontSize:'clamp(18px,2.5vw,26px)', fontWeight:400, lineHeight:1.25, color:'var(--color-text-primary)', marginBottom:'0.5rem', letterSpacing:'-0.01em' }}>
                   {active.title}
                 </h2>
+                <p style={{ fontSize:13, color:'var(--color-accent)', marginBottom:'1.5rem', letterSpacing:'0.04em' }}>{active.subtitle}</p>
 
-                {/* Aperture divider */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ height: '0.5px', flex: 1, background: 'var(--color-border)' }} />
-                  <svg viewBox="0 0 20 20" width="16" height="16" style={{ opacity: 0.3 }}>
-                    <circle cx="10" cy="10" r="9" stroke="var(--color-accent)" strokeWidth="0.8" fill="none"/>
-                    <circle cx="10" cy="10" r="3" stroke="var(--color-accent)" strokeWidth="1" fill="none"/>
-                    {[0,60,120,180,240,300].map(d => (
-                      <line key={d}
-                        x1={10+4*Math.cos(d*Math.PI/180)} y1={10+4*Math.sin(d*Math.PI/180)}
-                        x2={10+8.5*Math.cos(d*Math.PI/180)} y2={10+8.5*Math.sin(d*Math.PI/180)}
-                        stroke="var(--color-accent)" strokeWidth="0.8"/>
-                    ))}
-                  </svg>
-                  <div style={{ height: '0.5px', flex: 1, background: 'var(--color-border)' }} />
-                </div>
+                {active.summary && (
+                  <p style={{ fontSize:15, lineHeight:1.8, color:'var(--color-text-secondary)', marginBottom:'1.5rem' }}>{active.summary}</p>
+                )}
 
-                <p style={{
-                  fontSize: 15, lineHeight: 1.8,
-                  color: 'var(--color-text-secondary)',
-                  marginBottom: '2.5rem',
-                }}>
-                  {active.summary}
-                </p>
+                {/* Audio player for direct files */}
+                {active.media_url && (active.media_url.endsWith('.mp3') || active.media_url.endsWith('.m4a') || active.media_url.includes('audio')) && (
+                  <audio controls style={{ width:'100%', marginBottom:'1.5rem', accentColor:'var(--color-accent)' }}>
+                    <source src={active.media_url}/>
+                  </audio>
+                )}
 
-                {/* Action */}
-                {hasRealUrl ? (
-                  <a
-                    href={active.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary"
+                {hasRealUrl && (
+                  <a href={active.url} target="_blank" rel="noopener noreferrer" style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-accent)', textDecoration:'none', border:'0.5px solid var(--color-accent)', padding:'0.625rem 1.25rem', transition:'background 0.2s' }}
+                    onMouseEnter={e=>(e.currentTarget.style.background='rgba(232,104,58,0.08)')}
+                    onMouseLeave={e=>(e.currentTarget.style.background='transparent')}
                   >
-                    {active.kind === 'podcast' ? 'Listen to Episode' : 'Read Full Article'}
-                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                      <path d="M1 6.5h11M6.5 1l5.5 5.5-5.5 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    {active.kind === 'podcast' ? 'Listen / Watch' : 'Read Article'}
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 9L9 1M9 1H3M9 1v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                   </a>
-                ) : (
-                  <div style={{
-                    padding: '1rem 1.25rem',
-                    border: '0.5px solid var(--color-border)',
-                    background: 'var(--color-surface-1)',
-                    borderRadius: 2,
-                  }}>
-                    <p style={{ fontSize: 12, color: 'var(--color-text-tertiary)', lineHeight: 1.6 }}>
-                      External link will be added once published.
-                      Contact <a href="mailto:niddhish@lightseekermedia.com" style={{ color: 'var(--color-accent)', textDecoration: 'none' }}>niddhish@lightseekermedia.com</a> for media enquiries.
-                    </p>
-                  </div>
                 )}
               </div>
-
-              {/* Letterbox bottom bar */}
-              <div style={{ height: 4, background: 'linear-gradient(90deg, var(--color-accent) 0%, rgba(232,104,58,0.3) 100%)' }} />
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
+  )
+}
+
+function PressCard({ item, index, onClick, isPodcast = false }: { item: PressItem; index: number; onClick: () => void; isPodcast?: boolean }) {
+  const hasThumb = !!item.image_url
+  const hasEmbed = !!(item.embed_url && getEmbedSrc(item.embed_url))
+
+  return (
+    <motion.button
+      initial={{ opacity:0 }} whileInView={{ opacity:1 }} viewport={{ once:true, margin:'-40px' }}
+      transition={{ duration:0.5, ease:EASE, delay: (index % 4) * 0.05 }}
+      onClick={onClick}
+      style={{ textAlign:'left', background:'var(--color-bg)', border:'none', cursor:'pointer', padding:0, display:'flex', flexDirection:'column' }}
+      data-press-card
+    >
+      {/* Thumbnail */}
+      {hasThumb ? (
+        <div style={{ position:'relative', aspectRatio:'16/9', overflow:'hidden', background:'#111' }}>
+          <img src={item.image_url!} alt={item.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', transition:'transform 0.5s ease' }}
+            className="press-thumb"
+            onError={e=>(e.currentTarget.style.display='none')}
+          />
+          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)', opacity:0, transition:'opacity 0.3s' }} className="press-overlay"/>
+          {(hasEmbed || item.media_url) && (
+            <div style={{ position:'absolute', bottom:10, right:10, background:'rgba(232,104,58,0.9)', borderRadius:'50%', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width="10" height="12" viewBox="0 0 10 12" fill="white"><path d="M1 1l8 5-8 5V1z"/></svg>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ aspectRatio:'16/9', background:'var(--color-surface-1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 }}>
+          {isPodcast ? '🎙' : '📰'}
+        </div>
+      )}
+
+      {/* Meta */}
+      <div style={{ padding:'1.25rem', flex:1 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.5rem', flexWrap:'wrap' }}>
+          <span style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--color-accent)' }}>{item.outlet}</span>
+          <span style={{ fontSize:10, color:'var(--color-border-mid)' }}>·</span>
+          <span style={{ fontSize:10, color:'var(--color-text-tertiary)', letterSpacing:'0.04em' }}>{item.type} · {item.year}</span>
+          {item.url && item.url !== '#' && (
+            <svg width="8" height="8" viewBox="0 0 10 10" fill="none" style={{ marginLeft:'auto', color:'var(--color-text-tertiary)' }}><path d="M1 9L9 1M9 1H3M9 1v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          )}
+        </div>
+        <p style={{ fontSize:14, fontFamily:'var(--font-playfair,serif)', color:'var(--color-text-primary)', lineHeight:1.4, margin:0 }}>{item.title}</p>
+        {item.duration && <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.4rem' }}>{item.duration}</p>}
+      </div>
+
+      <style>{`
+        [data-press-card]:hover .press-thumb { transform: scale(1.04) !important; }
+        [data-press-card]:hover .press-overlay { opacity: 1 !important; }
+      `}</style>
+    </motion.button>
   )
 }
