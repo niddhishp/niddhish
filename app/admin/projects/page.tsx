@@ -4,10 +4,17 @@ import { useState, useEffect } from 'react'
 interface DbVideo {
   id: string; video_id: string; source: 'vimeo'|'youtube'
   title: string; brand: string; category: string
-  duration: string; description: string; is_active: boolean; sort_order: number
+  duration: string; description: string; thumbnail_url: string
+  is_active: boolean; sort_order: number
 }
 interface DbCategory { id: string; slug: string; label: string; sort_order: number }
-const EMPTY: Omit<DbVideo,'id'> = { video_id:'', source:'vimeo', title:'', brand:'', category:'ai', duration:'', description:'', is_active:true, sort_order:99 }
+const EMPTY: Omit<DbVideo,'id'> = { video_id:'', source:'vimeo', title:'', brand:'', category:'', duration:'', description:'', thumbnail_url:'', is_active:true, sort_order:99 }
+
+function buildThumb(source: string, videoId: string, custom?: string) {
+  if (custom) return custom
+  if (source === 'youtube') return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+  return '' // Vimeo needs hash — blank until fetched
+}
 
 export default function AdminProjects() {
   const [videos, setVideos] = useState<DbVideo[]>([])
@@ -16,6 +23,7 @@ export default function AdminProjects() {
   const [view, setView] = useState<'list'|'edit'|'new'>('list')
   const [editing, setEditing] = useState<Partial<DbVideo>>({})
   const [saving, setSaving] = useState(false)
+  const [fetchingThumb, setFetchingThumb] = useState(false)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('all')
@@ -29,8 +37,20 @@ export default function AdminProjects() {
       const [vd, cd] = await Promise.all([vr.json(), cr.json()])
       if (vd.videos) setVideos(vd.videos)
       if (cd.categories) setCats(cd.categories)
-    } catch(e) { setError('Failed to load') }
+    } catch { setError('Failed to load') }
     finally { setLoading(false) }
+  }
+
+  const fetchVimeoThumb = async () => {
+    if (!editing.video_id || editing.source !== 'vimeo') return
+    setFetchingThumb(true)
+    try {
+      const res = await fetch(`/api/vimeo-thumb/${editing.video_id}`)
+      const data = await res.json()
+      if (data.thumbnail) setEditing(p => ({ ...p, thumbnail_url: data.thumbnail }))
+      else setError('Could not fetch thumbnail — video may be private')
+    } catch { setError('Thumbnail fetch failed') }
+    finally { setFetchingThumb(false) }
   }
 
   const save = async () => {
@@ -52,10 +72,6 @@ export default function AdminProjects() {
     finally { setSaving(false) }
   }
 
-  const thumb = (v: Partial<DbVideo>) => v.source === 'youtube'
-    ? `https://i.ytimg.com/vi/${v.video_id}/maxresdefault.jpg`
-    : `https://i.vimeocdn.com/video/${v.video_id}_640.jpg`
-
   const upd = (k: keyof DbVideo) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) =>
     setEditing(p => ({ ...p, [k]: e.target.value }))
 
@@ -65,6 +81,12 @@ export default function AdminProjects() {
     return cm && sm
   })
 
+  const getDisplayThumb = (v: Partial<DbVideo>) => {
+    if (v.thumbnail_url) return v.thumbnail_url
+    if (v.source === 'youtube' && v.video_id) return `https://img.youtube.com/vi/${v.video_id}/maxresdefault.jpg`
+    return ''
+  }
+
   if (view !== 'list') return (
     <div>
       <div style={{ display:'flex', alignItems:'center', gap:'1rem', marginBottom:'2rem' }}>
@@ -72,14 +94,15 @@ export default function AdminProjects() {
         <h1 style={h1}>{view==='new' ? 'New Project' : `Edit — ${editing.title}`}</h1>
       </div>
       {error && <div style={errBox}>{error}</div>}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 280px', gap:'2.5rem', alignItems:'start' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:'2.5rem', alignItems:'start' }}>
         <div style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem' }}>
             <div><label style={lbl}>Title *</label><input value={editing.title||''} onChange={upd('title')} style={inp} placeholder="Film title"/></div>
             <div><label style={lbl}>Brand / Client *</label><input value={editing.brand||''} onChange={upd('brand')} style={inp} placeholder="Nike"/></div>
             <div>
               <label style={lbl}>Category</label>
-              <select value={editing.category||'ai'} onChange={upd('category')} style={inp}>
+              <select value={editing.category||''} onChange={upd('category')} style={inp}>
+                <option value="">— select —</option>
                 {cats.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
               </select>
             </div>
@@ -98,25 +121,57 @@ export default function AdminProjects() {
               <label htmlFor="active" style={{ fontSize:13, color:'var(--color-text-secondary)', cursor:'pointer' }}>Active (visible on site)</label>
             </div>
           </div>
+
+          {/* Thumbnail section */}
+          <div style={{ border:'0.5px solid var(--color-border)', padding:'1.25rem' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'0.75rem' }}>
+              <label style={{ ...lbl, marginBottom:0 }}>Thumbnail URL</label>
+              {editing.source === 'vimeo' && editing.video_id && (
+                <button onClick={fetchVimeoThumb} disabled={fetchingThumb} style={{ background:'none', border:'0.5px solid var(--color-border)', color:'var(--color-accent)', padding:'0.3rem 0.75rem', fontSize:11, cursor:'pointer', fontFamily:'inherit', opacity:fetchingThumb?0.6:1 }}>
+                  {fetchingThumb ? 'Fetching…' : '⟳ Auto-fetch from Vimeo'}
+                </button>
+              )}
+            </div>
+            <input value={editing.thumbnail_url||''} onChange={upd('thumbnail_url')} style={inp} placeholder="https://i.vimeocdn.com/video/... or paste any image URL"/>
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginTop:'0.4rem' }}>
+              Paste any image URL, or use the auto-fetch button to pull directly from Vimeo. YouTube thumbnails are generated automatically.
+            </p>
+            {getDisplayThumb(editing) && (
+              <img src={getDisplayThumb(editing)} alt="thumbnail preview" onError={e=>(e.currentTarget.style.opacity='0.2')} style={{ width:'100%', aspectRatio:'16/9', objectFit:'cover', marginTop:'0.75rem', display:'block', border:'0.5px solid var(--color-border)' }}/>
+            )}
+            {!getDisplayThumb(editing) && editing.source === 'vimeo' && (
+              <div style={{ marginTop:'0.75rem', padding:'1.5rem', background:'var(--color-bg)', border:'0.5px dashed var(--color-border)', textAlign:'center' }}>
+                <p style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>No thumbnail — click "Auto-fetch from Vimeo" above</p>
+              </div>
+            )}
+          </div>
+
           <div><label style={lbl}>Description</label><textarea value={editing.description||''} onChange={upd('description')} rows={3} style={{...inp,resize:'vertical' as const}} placeholder="Film description..."/></div>
           <button onClick={save} disabled={saving} className="btn-primary" style={{ alignSelf:'flex-start', opacity:saving?0.6:1 }}>
             {saving ? 'Saving…' : view==='new' ? 'Add Project' : 'Save Changes'}
           </button>
         </div>
-        {editing.video_id ? (
-          <div style={{ border:'0.5px solid var(--color-border)', overflow:'hidden', position:'sticky', top:'1rem' }}>
-            <div style={{ position:'relative', aspectRatio:'16/9', background:'#111' }}>
-              <img src={thumb(editing)} alt="thumbnail" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
-            </div>
-            <div style={{ padding:'0.75rem' }}>
-              <p style={{ fontSize:11, color:'var(--color-text-tertiary)' }}>Auto-fetched thumbnail</p>
-            </div>
+
+        {/* Sidebar preview */}
+        <div style={{ position:'sticky', top:'1rem', border:'0.5px solid var(--color-border)', overflow:'hidden' }}>
+          <div style={{ position:'relative', aspectRatio:'16/9', background:'#111' }}>
+            {getDisplayThumb(editing) ? (
+              <img src={getDisplayThumb(editing)} alt="preview" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} onError={e=>(e.currentTarget.style.opacity='0.2')}/>
+            ) : (
+              <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <p style={{ fontSize:11, color:'var(--color-text-tertiary)', textAlign:'center', padding:'1rem' }}>
+                  {editing.source==='vimeo' ? 'Use "Auto-fetch" to load thumbnail' : 'Enter a Video ID to preview'}
+                </p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div style={{ border:'0.5px dashed var(--color-border)', aspectRatio:'16/9', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', textAlign:'center' }}>Enter a Video ID to preview</p>
+          <div style={{ padding:'0.75rem' }}>
+            <p style={{ fontSize:11, color:'var(--color-text-tertiary)', marginBottom:'0.25rem' }}>
+              {editing.source === 'vimeo' ? 'Vimeo' : 'YouTube'} · {editing.category||'No category'}
+            </p>
+            <p style={{ fontSize:13, color:'var(--color-text-primary)' }}>{editing.title||'Untitled'}</p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
@@ -126,9 +181,9 @@ export default function AdminProjects() {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
         <div>
           <h1 style={h1}>Projects</h1>
-          <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>{loading ? 'Loading…' : `${videos.length} videos · ${cats.length} categories · Connected to Supabase`}</p>
+          <p style={{ fontSize:14, color:'var(--color-text-secondary)' }}>{loading ? 'Loading…' : `${videos.length} videos — thumbnails stored in Supabase`}</p>
         </div>
-        <button onClick={()=>{ setEditing({...EMPTY,category:cats[0]?.slug||'ai'}); setView('new') }} className="btn-primary">+ Add Commercial</button>
+        <button onClick={()=>{ setEditing({...EMPTY,category:cats[0]?.slug||''}); setView('new') }} className="btn-primary">+ Add Video</button>
       </div>
       {error && <div style={{ ...errBox, marginBottom:'1.5rem' }}>{error}</div>}
 
@@ -146,29 +201,41 @@ export default function AdminProjects() {
 
       {loading ? <div style={{ padding:'3rem', textAlign:'center', color:'var(--color-text-tertiary)' }}>Loading…</div> : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'0.75rem' }}>
-          {filtered.map(v => (
-            <div key={v.id} style={{ border:'0.5px solid var(--color-border)', overflow:'hidden', background:'var(--color-surface-1)', opacity: v.is_active ? 1 : 0.5 }}>
-              <div style={{ position:'relative', aspectRatio:'16/9', background:'#111' }}>
-                <img src={thumb(v)} alt={v.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
-                <span style={{ position:'absolute', top:5, right:5, fontSize:8, background:v.source==='youtube'?'rgba(255,0,0,0.8)':'rgba(26,183,234,0.8)', color:'#fff', padding:'1px 5px', borderRadius:1 }}>{v.source==='youtube'?'YT':'Vi'}</span>
-              </div>
-              <div style={{ padding:'0.75rem' }}>
-                <p style={{ fontSize:9, color:'var(--color-accent)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:'0.2rem' }}>{v.brand}</p>
-                <p style={{ fontSize:12, color:'var(--color-text-primary)', fontFamily:'var(--font-playfair,serif)', marginBottom:'0.4rem', lineHeight:1.3 }}>{v.title}</p>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontSize:10, color:'var(--color-text-tertiary)' }}>{v.duration}</span>
-                  <button onClick={()=>{ setEditing({...v}); setView('edit') }} style={{ background:'none', border:'none', color:'var(--color-accent)', fontSize:11, cursor:'pointer', padding:0 }}>Edit</button>
+          {filtered.map(v => {
+            const thumb = getDisplayThumb(v)
+            const hasMissingThumb = !v.thumbnail_url && v.source === 'vimeo'
+            return (
+              <div key={v.id} style={{ border:`0.5px solid ${hasMissingThumb ? 'rgba(255,160,50,0.4)' : 'var(--color-border)'}`, overflow:'hidden', background:'var(--color-surface-1)', opacity:v.is_active?1:0.5, position:'relative' }}>
+                <div style={{ position:'relative', aspectRatio:'16/9', background:'#111' }}>
+                  {thumb ? (
+                    <img src={thumb} alt={v.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} onError={e=>(e.currentTarget.style.display='none')}/>
+                  ) : (
+                    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#0d0d0d' }}>
+                      <span style={{ fontSize:9, color:'rgba(255,160,50,0.8)', letterSpacing:'0.06em' }}>NO THUMBNAIL</span>
+                    </div>
+                  )}
+                  <span style={{ position:'absolute', top:5, right:5, fontSize:8, background:v.source==='youtube'?'rgba(255,0,0,0.8)':'rgba(26,183,234,0.8)', color:'#fff', padding:'1px 5px', borderRadius:1 }}>{v.source==='youtube'?'YT':'Vi'}</span>
+                </div>
+                <div style={{ padding:'0.75rem' }}>
+                  <p style={{ fontSize:9, color:'var(--color-accent)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:'0.2rem' }}>{v.brand}</p>
+                  <p style={{ fontSize:12, color:'var(--color-text-primary)', fontFamily:'var(--font-playfair,serif)', marginBottom:'0.4rem', lineHeight:1.3 }}>{v.title}</p>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontSize:10, color:hasMissingThumb?'rgba(255,160,50,0.8)':'var(--color-text-tertiary)' }}>
+                      {hasMissingThumb ? '⚠ No thumb' : v.duration}
+                    </span>
+                    <button onClick={()=>{ setEditing({...v}); setView('edit') }} style={{ background:'none', border:'none', color:'var(--color-accent)', fontSize:11, cursor:'pointer', padding:0 }}>Edit</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
       {del && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}>
           <div style={{ background:'#111', border:'0.5px solid var(--color-border)', padding:'2rem', maxWidth:360, width:'90%' }}>
-            <p style={{ fontSize:15, color:'var(--color-text-primary)', marginBottom:'1.5rem' }}>Delete this video from Supabase?</p>
+            <p style={{ fontSize:15, color:'var(--color-text-primary)', marginBottom:'1.5rem' }}>Delete this video from the catalog?</p>
             <div style={{ display:'flex', gap:'0.75rem' }}>
               <button onClick={async()=>{ await fetch(`/api/admin/videos/${del}`,{method:'DELETE'}); setVideos(v=>v.filter(x=>x.id!==del)); setDel(null) }} style={{ background:'rgba(255,80,80,0.15)', border:'0.5px solid rgba(255,80,80,0.4)', color:'#ff6060', padding:'0.625rem 1.25rem', cursor:'pointer', fontSize:13, fontFamily:'inherit' }}>Delete</button>
               <button onClick={()=>setDel(null)} className="btn-ghost" style={{ fontSize:13 }}>Cancel</button>

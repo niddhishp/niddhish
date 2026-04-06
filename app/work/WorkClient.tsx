@@ -27,18 +27,33 @@ export default function WorkClient() {
   const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
   const [railwayVideos, setRailwayVideos] = useState<RailwayVideo[]|null>(null)
   const [cats, setCats] = useState<string[]>([])
+  // Thumbnail overrides from Supabase (keyed by video_id)
+  const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    // Fetch Railway videos (source of truth for video data)
     fetch(`${RAILWAY_API}/api/projects?is_active=true`)
       .then(r => r.json())
       .then((data: RailwayVideo[]) => {
         if (!data?.length) return
         setRailwayVideos(data)
-        // Build unique category list preserving order of first appearance
         const seen = new Set<string>()
         const catList: string[] = []
         data.forEach(v => { if (v.category && !seen.has(v.category)) { seen.add(v.category); catList.push(v.category) } })
         setCats(catList.sort())
+      })
+      .catch(() => {})
+
+    // Fetch Supabase thumbnail overrides
+    fetch('/api/admin/videos')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.videos?.length) return
+        const overrides: Record<string, string> = {}
+        d.videos.forEach((v: { video_id: string; thumbnail_url?: string }) => {
+          if (v.thumbnail_url) overrides[v.video_id] = v.thumbnail_url
+        })
+        setThumbOverrides(overrides)
       })
       .catch(() => {})
   }, [])
@@ -46,6 +61,12 @@ export default function WorkClient() {
   const allVideos = railwayVideos
     ? railwayVideos.map(v => {
         const info = parseVideoUrl(v.video_url)
+        const vimeoId = info?.provider === 'vimeo' ? info.id : ''
+        // Priority: Supabase override > Railway thumbnail > YouTube auto
+        const thumb = (vimeoId && thumbOverrides[vimeoId])
+          || thumbOverrides[info?.id || '']
+          || v.thumbnail
+          || (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` : '')
         return {
           videoUrl: v.video_url,
           id: info?.id || '',
@@ -54,9 +75,7 @@ export default function WorkClient() {
           brand: v.client,
           category: v.category,
           duration: v.duration,
-          thumbnail: v.thumbnail ||
-            (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` :
-             info?.provider === 'vimeo'   ? `https://i.vimeocdn.com/video/${info.id}_640.jpg` : ''),
+          thumbnail: thumb,
         }
       })
     : VIDEOS.map(v => ({

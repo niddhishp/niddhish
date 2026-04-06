@@ -31,12 +31,14 @@ interface RailwayVideo {
   duration: string; thumbnail: string; video_url: string; is_featured: boolean; sort_order: number
 }
 
-function getThumb(v: RailwayVideo): string {
-  if (v.thumbnail) return v.thumbnail
+function getThumb(v: RailwayVideo, overrides: Record<string, string>): string {
   const info = parseVideoUrl(v.video_url)
-  if (info?.provider === 'youtube') return `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg`
-  if (info?.provider === 'vimeo') return `https://i.vimeocdn.com/video/${info.id}_640.jpg`
-  return ''
+  const id = info?.id || ''
+  // Priority: Supabase override > Railway thumbnail > YouTube auto
+  if (overrides[id]) return overrides[id]
+  if (v.thumbnail) return v.thumbnail
+  if (info?.provider === 'youtube') return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`
+  return '' // Vimeo — needs override
 }
 
 export default function WorkReel() {
@@ -45,6 +47,7 @@ export default function WorkReel() {
   const [heading, setHeading] = useState('200+ commercials.')
   const [accent, setAccent] = useState('A selection.')
   const [featured, setFeatured] = useState<RailwayVideo[]>([])
+  const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/content').then(r => r.json()).then(d => {
@@ -53,7 +56,6 @@ export default function WorkReel() {
       if (d.section_reel_accent)  setAccent(d.section_reel_accent)
     }).catch(() => {})
 
-    // Fetch featured videos from Railway (shared DB)
     fetch(`${RAILWAY_API}/api/projects?is_active=true`)
       .then(r => r.json())
       .then((data: RailwayVideo[]) => {
@@ -62,13 +64,25 @@ export default function WorkReel() {
           .filter(v => v.is_featured)
           .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
           .slice(0, 12)
-        // If fewer than 12 featured, pad with non-featured
         if (feat.length < 12) {
           const nonFeat = data.filter(v => !v.is_featured).slice(0, 12 - feat.length)
           setFeatured([...feat, ...nonFeat])
         } else {
           setFeatured(feat)
         }
+      })
+      .catch(() => {})
+
+    // Supabase thumbnail overrides
+    fetch('/api/admin/videos')
+      .then(r => r.json())
+      .then(d => {
+        if (!d.videos?.length) return
+        const overrides: Record<string, string> = {}
+        d.videos.forEach((v: { video_id: string; thumbnail_url?: string }) => {
+          if (v.thumbnail_url) overrides[v.video_id] = v.thumbnail_url
+        })
+        setThumbOverrides(overrides)
       })
       .catch(() => {})
   }, [])
@@ -116,7 +130,7 @@ export default function WorkReel() {
             data-film-card
           >
             <Image
-              src={getThumb(video)}
+              src={getThumb(video, thumbOverrides)}
               alt={video.title}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
