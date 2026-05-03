@@ -60,12 +60,15 @@ export default function WorkReel() {
       .then(r => r.json())
       .then((data: RailwayVideo[]) => {
         if (!data?.length) return
-        const feat = data
+        const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
+        const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
+        const clean = data.filter(v => v.video_url && !isPlaceholder(v.video_url))
+        const feat = clean
           .filter(v => v.is_featured)
           .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
           .slice(0, 12)
         if (feat.length < 12) {
-          const nonFeat = data.filter(v => !v.is_featured).slice(0, 12 - feat.length)
+          const nonFeat = clean.filter(v => !v.is_featured).slice(0, 12 - feat.length)
           setFeatured([...feat, ...nonFeat])
         } else {
           setFeatured(feat)

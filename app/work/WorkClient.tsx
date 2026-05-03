@@ -53,26 +53,32 @@ export default function WorkClient() {
       .catch(() => {})
   }, [])
 
+  // Placeholder URL used in lightseeker admin when video URL wasn't set
+  const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
+  const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
+
   const allVideos = railwayVideos
-    ? railwayVideos.map(v => {
-        const info = parseVideoUrl(v.video_url)
-        const vimeoId = info?.provider === 'vimeo' ? info.id : ''
-        // Priority: Supabase override > Railway thumbnail > YouTube auto
-        const thumb = (vimeoId && thumbOverrides[vimeoId])
-          || thumbOverrides[info?.id || '']
-          || v.thumbnail
-          || (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` : '')
-        return {
-          videoUrl: v.video_url,
-          id: info?.id || '',
-          source: info?.provider === 'youtube' ? 'youtube' as const : 'vimeo' as const,
-          title: v.title,
-          brand: v.client,
-          category: v.category,
-          duration: v.duration,
-          thumbnail: thumb,
-        }
-      })
+    ? railwayVideos
+        .filter(v => v.video_url && !isPlaceholder(v.video_url))
+        .map(v => {
+          const info = parseVideoUrl(v.video_url)
+          const vimeoId = info?.provider === 'vimeo' ? info.id : ''
+          // Priority: Supabase override > Railway thumbnail > YouTube auto
+          const thumb = (vimeoId && thumbOverrides[vimeoId])
+            || thumbOverrides[info?.id || '']
+            || v.thumbnail
+            || (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` : '')
+          return {
+            videoUrl: v.video_url,
+            id: info?.id || '',
+            source: info?.provider === 'youtube' ? 'youtube' as const : 'vimeo' as const,
+            title: v.title,
+            brand: v.client,
+            category: v.category,
+            duration: v.duration,
+            thumbnail: thumb,
+          }
+        })
     : VIDEOS.map(v => ({
         videoUrl: v.source === 'youtube' ? `https://www.youtube.com/watch?v=${v.id}` : `https://vimeo.com/${v.id}`,
         id: v.id, source: v.source, title: v.title, brand: v.brand,
