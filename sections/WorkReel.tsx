@@ -48,6 +48,7 @@ export default function WorkReel() {
   const [accent, setAccent] = useState('A selection.')
   const [featured, setFeatured] = useState<RailwayVideo[]>([])
   const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
+  const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/content').then(r => r.json()).then(d => {
@@ -62,7 +63,10 @@ export default function WorkReel() {
         if (!data?.length) return
         const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
         const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
-        const clean = data.filter(v => v.video_url && !isPlaceholder(v.video_url))
+        const clean = data.filter(v => {
+          const resolved = urlOverrides[v.id] || v.video_url || ''
+          return resolved && !isPlaceholder(resolved)
+        })
         const feat = clean
           .filter(v => v.is_featured)
           .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
@@ -81,6 +85,11 @@ export default function WorkReel() {
     fetch('/api/admin/thumbnails')
       .then(r => r.json())
       .then(d => { if (d.overrides) setThumbOverrides(d.overrides) })
+      .catch(() => {})
+
+    fetch('/api/admin/video-url-overrides')
+      .then(r => r.json())
+      .then(d => { if (d.overrides) setUrlOverrides(d.overrides) })
       .catch(() => {})
   }, [])
 
@@ -117,7 +126,7 @@ export default function WorkReel() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
-            onClick={() => setActive({ videoUrl: video.video_url, title: video.title, brand: video.client })}
+            onClick={() => setActive({ videoUrl: urlOverrides[video.id] || video.video_url, title: video.title, brand: video.client })}
             style={{
               position: 'relative', aspectRatio: '16/9',
               background: '#111', overflow: 'hidden',

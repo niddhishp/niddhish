@@ -27,11 +27,10 @@ export default function WorkClient() {
   const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
   const [railwayVideos, setRailwayVideos] = useState<RailwayVideo[]|null>(null)
   const [cats, setCats] = useState<string[]>([])
-  // Thumbnail overrides from Supabase (keyed by video_id)
   const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
+  const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    // Fetch Railway videos (source of truth for video data)
     fetch(`${RAILWAY_API}/api/projects?is_active=true`)
       .then(r => r.json())
       .then((data: RailwayVideo[]) => {
@@ -44,12 +43,14 @@ export default function WorkClient() {
       })
       .catch(() => {})
 
-    // Fetch Supabase thumbnail overrides (saved by admin → thumbnail_overrides table)
     fetch('/api/admin/thumbnails')
       .then(r => r.json())
-      .then(d => {
-        if (d.overrides) setThumbOverrides(d.overrides)
-      })
+      .then(d => { if (d.overrides) setThumbOverrides(d.overrides) })
+      .catch(() => {})
+
+    fetch('/api/admin/video-url-overrides')
+      .then(r => r.json())
+      .then(d => { if (d.overrides) setUrlOverrides(d.overrides) })
       .catch(() => {})
   }, [])
 
@@ -59,17 +60,18 @@ export default function WorkClient() {
 
   const allVideos = railwayVideos
     ? railwayVideos
-        .filter(v => v.video_url && !isPlaceholder(v.video_url))
         .map(v => {
-          const info = parseVideoUrl(v.video_url)
+          // Use Supabase URL override if available, otherwise Railway URL
+          const resolvedUrl = urlOverrides[v.id] || v.video_url || ''
+          if (!resolvedUrl || isPlaceholder(resolvedUrl)) return null
+          const info = parseVideoUrl(resolvedUrl)
           const vimeoId = info?.provider === 'vimeo' ? info.id : ''
-          // Priority: Supabase override > Railway thumbnail > YouTube auto
           const thumb = (vimeoId && thumbOverrides[vimeoId])
             || thumbOverrides[info?.id || '']
             || v.thumbnail
             || (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` : '')
           return {
-            videoUrl: v.video_url,
+            videoUrl: resolvedUrl,
             id: info?.id || '',
             source: info?.provider === 'youtube' ? 'youtube' as const : 'vimeo' as const,
             title: v.title,
@@ -79,6 +81,7 @@ export default function WorkClient() {
             thumbnail: thumb,
           }
         })
+        .filter(Boolean) as { videoUrl: string; id: string; source: 'youtube'|'vimeo'; title: string; brand: string; category: string; duration: string; thumbnail: string }[]
     : VIDEOS.map(v => ({
         videoUrl: v.source === 'youtube' ? `https://www.youtube.com/watch?v=${v.id}` : `https://vimeo.com/${v.id}`,
         id: v.id, source: v.source, title: v.title, brand: v.brand,
