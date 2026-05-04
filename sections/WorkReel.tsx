@@ -57,28 +57,40 @@ export default function WorkReel() {
       if (d.section_reel_accent)  setAccent(d.section_reel_accent)
     }).catch(() => {})
 
-    fetch(`${RAILWAY_API}/api/projects?is_active=true`)
-      .then(r => r.json())
-      .then((data: RailwayVideo[]) => {
-        if (!data?.length) return
-        const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
-        const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
-        const clean = data.filter(v => {
-          const resolved = urlOverrides[v.id] || v.video_url || ''
-          return resolved && !isPlaceholder(resolved)
-        })
-        const feat = clean
-          .filter(v => v.is_featured)
-          .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
-          .slice(0, 12)
-        if (feat.length < 12) {
-          const nonFeat = clean.filter(v => !v.is_featured).slice(0, 12 - feat.length)
-          setFeatured([...feat, ...nonFeat])
-        } else {
-          setFeatured(feat)
-        }
+    // Primary: Supabase projects table; fallback: Railway
+    const loadVideos = async () => {
+      let data: RailwayVideo[] = []
+      try {
+        const r = await fetch('/api/admin/projects')
+        const d = await r.json()
+        data = d.projects || []
+      } catch {}
+      if (!data.length) {
+        try {
+          const r = await fetch(`${RAILWAY_API}/api/projects?is_active=true`)
+          const rv = await r.json()
+          if (Array.isArray(rv)) data = rv
+        } catch {}
+      }
+      if (!data.length) return
+      const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
+      const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
+      const clean = data.filter(v => {
+        const resolved = v.video_url || ''
+        return resolved && !isPlaceholder(resolved)
       })
-      .catch(() => {})
+      const feat = clean
+        .filter(v => v.is_featured)
+        .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
+        .slice(0, 12)
+      if (feat.length < 12) {
+        const nonFeat = clean.filter(v => !v.is_featured).slice(0, 12 - feat.length)
+        setFeatured([...feat, ...nonFeat])
+      } else {
+        setFeatured(feat)
+      }
+    }
+    loadVideos()
 
     // Supabase thumbnail overrides
     // Supabase thumbnail overrides (saved by admin → thumbnail_overrides table)

@@ -31,8 +31,19 @@ export default function WorkClient() {
   const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    fetch(`${RAILWAY_API}/api/projects?is_active=true`)
+    // Primary: Supabase projects table (admin-managed)
+    fetch('/api/admin/projects')
       .then(r => r.json())
+      .then((d: { projects?: RailwayVideo[] }) => {
+        const data = d.projects || []
+        if (!data.length) {
+          // Fallback: Railway API if Supabase not yet seeded
+          return fetch(`https://lightseeker-films-production.up.railway.app/api/projects?is_active=true`)
+            .then(r => r.json())
+            .then((rv: RailwayVideo[]) => { if (Array.isArray(rv) && rv.length) return rv; return [] })
+        }
+        return data
+      })
       .then((data: RailwayVideo[]) => {
         if (!data?.length) return
         setRailwayVideos(data)
