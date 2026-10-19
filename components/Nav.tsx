@@ -7,6 +7,7 @@ import ApertureMark from './ApertureMark'
 
 const navItems = [
   { label: 'Work',        href: '/work' },
+  { label: 'Music Videos', href: '/#music-videos' },
   { label: 'Blog',        href: '/blog' },
   { label: 'Press',       href: '/press' },
   { label: 'About',       href: '/about' },
@@ -60,13 +61,14 @@ export default function Nav() {
         </Link>
 
         {/* Desktop links */}
-        <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }} className="hidden sm:flex">
+        <div style={{ gap: 'clamp(1rem, 2.5vw, 2.5rem)', alignItems: 'center' }} className="hidden lg:flex">
           {navItems.map(({ label, href }) => {
             const active = pathname === href
             return (
               <Link
                 key={href}
                 href={href}
+                onClick={() => setOpen(false)}
                 style={{
                   fontSize: 13, fontWeight: 400, letterSpacing: '0.04em',
                   color: active ? 'var(--color-accent)' : 'var(--color-text-secondary)',
@@ -88,7 +90,7 @@ export default function Nav() {
           onClick={() => setOpen(o => !o)}
           aria-label="Toggle navigation"
           aria-expanded={open}
-          className="flex sm:hidden"
+          className="flex lg:hidden"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-text-primary)' }}
         >
           {open ? (
@@ -120,6 +122,7 @@ export default function Nav() {
             <Link
               key={href}
               href={href}
+              onClick={() => setOpen(false)}
               style={{
                 fontFamily: 'var(--font-playfair, serif)',
                 fontSize: 'clamp(2rem, 8vw, 3rem)',

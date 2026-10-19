@@ -1,0 +1,33 @@
+.section {
+  scroll-margin-top: 5rem;
+  padding: clamp(3.5rem, 7vw, 6rem) clamp(1.25rem, 5vw, 3.5rem);
+  background: var(--color-surface-1);
+  border-block: 1px solid var(--color-accent-line);
+}
+.header { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; margin-bottom: 2.5rem; }
+.label { color: var(--color-accent); font-size: 11px; text-transform: uppercase; letter-spacing: .14em; margin-bottom: .9rem; }
+.accent { color: var(--color-accent); }
+.link { min-height: 44px; display: inline-flex; gap: 1rem; align-items: center; color: var(--color-text-primary); text-decoration: none; border-bottom: 1px solid var(--color-accent-line); font-size: 12px; white-space: nowrap; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem 1.5rem; }
+.film { background: transparent; border: 0; padding: 0; color: var(--color-text-primary); cursor: pointer; text-align: left; min-width: 0; align-self: start; }
+.image { position: relative; aspect-ratio: 16/9; overflow: hidden; background: var(--color-surface-3); }
+.image img { object-fit: cover; transition: transform .6s var(--ease-premium); }
+.film:hover .image img, .film:focus-visible .image img { transform: scale(1.025); }
+.play, .duration { position: absolute; background: rgba(10,10,10,.85); color: var(--color-text-primary); font-size: 11px; padding: .5rem .75rem; }
+.play { bottom: .9rem; left: .9rem; display: flex; align-items: center; gap: .6rem; min-height: 44px; text-transform: uppercase; letter-spacing: .08em; }
+.play span { color: var(--color-accent); }
+.duration { right: .9rem; top: .9rem; }
+.caption { display: flex; gap: .9rem; align-items: baseline; padding-top: 1rem; }
+.caption h3 { font-family: var(--font-playfair, serif); font-size: clamp(1.2rem, 2.2vw, 1.8rem); font-weight: 400; letter-spacing: -.02em; }
+.number { font-size: 10px; color: var(--color-accent); }
+.arrow { margin-left: auto; color: var(--color-accent); }
+.film:focus-visible, .link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 6px; }
+.status { padding: 3rem 0; color: var(--color-text-secondary); }
+@media (max-width: 640px) {
+  .header { align-items: flex-start; flex-direction: column; gap: 1.25rem; }
+  .grid { grid-template-columns: 1fr; gap: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .image img { transition: none; }
+  .film:hover .image img, .film:focus-visible .image img { transform: none; }
+}

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { parseVideoUrl } from '@/lib/videoUtils'
 
-const CATEGORIES = ['Automotive','Fashion & Beauty','Narrative','Humour','Offbeat','Sports','Animation','FMCG','Finance','Technology','Healthcare','Other']
+const CATEGORIES = ['Automotive','Fashion & Beauty','Narrative','Humour','Offbeat','Sports','Animation','FMCG','Finance','Technology','Healthcare','Music Video','Other']
 const PLACEHOLDER = 'EQV7jlmU72Q'
 
 interface Project {

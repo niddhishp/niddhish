@@ -1,4 +1,4 @@
-// Exact copy of lightseeker-films/src/lib/videoUtils.ts — the version that works
+// Vimeo and YouTube identity parsing. Vimeo thumbnails come from saved metadata.
 
 export type VideoProvider = 'youtube' | 'vimeo' | 'unknown'
 
@@ -10,39 +10,41 @@ export interface VideoInfo {
 }
 
 export function parseVideoUrl(url: string): VideoInfo | null {
-  if (!url) return null
-
-  // YouTube patterns
-  const youtubePatterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-  ]
-  for (const pattern of youtubePatterns) {
-    const match = url.match(pattern)
-    if (match) {
-      const id = match[1]
-      return {
-        provider: 'youtube',
-        id,
-        embedUrl: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`,
-        thumbnailUrl: `https://img.youtube.com/vi/${id}/maxresdefault.jpg`,
-      }
-    }
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+    if (!['https:', 'http:'].includes(parsed.protocol)) return null;
+  } catch { return null; }
+  const host = parsed.hostname.replace(/^www\./, '');
+  const parts = parsed.pathname.split('/').filter(Boolean);
+  let youtubeId = '';
+  if (host === 'youtu.be') youtubeId = parts[0] || '';
+  else if (['youtube.com', 'm.youtube.com', 'youtube-nocookie.com'].includes(host)) {
+    youtubeId = parsed.searchParams.get('v') ||
+      (['embed', 'shorts', 'live'].includes(parts[0]) ? parts[1] : '') || '';
   }
-
-  // Vimeo patterns — extract just the numeric ID, ignore ?fl=tl&fe=ec etc
-  const vimeoPattern = /vimeo\.com\/(\d+)/
-  const vimeoMatch = url.match(vimeoPattern)
-  if (vimeoMatch) {
-    const id = vimeoMatch[1]
+  if (/^[a-zA-Z0-9_-]{11}$/.test(youtubeId)) {
     return {
-      provider: 'vimeo',
-      id,
-      embedUrl: `https://player.vimeo.com/video/${id}?autoplay=1&title=0&byline=0&portrait=0&dnt=1`,
-      thumbnailUrl: `https://i.vimeocdn.com/video/${id}_640.jpg`,
-    }
+      provider: 'youtube', id: youtubeId,
+      embedUrl: `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&color=white`,
+      thumbnailUrl: `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`,
+    };
+  }
+  if (host === 'vimeo.com' || host === 'player.vimeo.com') {
+    const index = parts.findIndex(part => /^\d+$/.test(part));
+    if (index < 0) return null;
+    const id = parts[index];
+    const hash = parsed.searchParams.get('h') || parts[index + 1];
+    const params = new URLSearchParams({ autoplay: '1', title: '0', byline: '0', portrait: '0', color: 'f5d0a0', dnt: '1' });
+    if (hash && /^[a-zA-Z0-9]+$/.test(hash)) params.set('h', hash);
+    return {
+      provider: 'vimeo', id,
+      embedUrl: `https://player.vimeo.com/video/${id}?${params}`,
+      thumbnailUrl: '',
+    };
   }
 
-  return null
+  return null;
 }
 
 export function getThumbnailFromUrl(url: string): string {

@@ -45,7 +45,7 @@ export default function Hero() {
 
   // ── Force scroll to top on mount + load hero video from Supabase ──
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !window.location.hash) {
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
     }
     // Load hero video URL from site_settings

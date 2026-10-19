@@ -6,10 +6,9 @@ import Link from 'next/link'
 import type { Variants } from 'framer-motion'
 import { motion } from 'framer-motion'
 import VideoModal from '@/components/VideoModal'
-import { parseVideoUrl } from '@/lib/videoUtils'
+import { projectThumbnail, type Project } from '@/lib/projects'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-const RAILWAY_API = 'https://lightseeker-films-production.up.railway.app'
 
 const cardVariants: Variants = {
   hidden: { opacity: 0, y: 32 },
@@ -26,29 +25,12 @@ const BRANDS = [
   'Beardo', 'Vinsmera', 'Just Younger',
 ]
 
-interface RailwayVideo {
-  id: string; title: string; client: string; category: string
-  duration: string; thumbnail: string; video_url: string; is_featured: boolean; sort_order: number
-}
-
-function getThumb(v: RailwayVideo, overrides: Record<string, string>): string {
-  const info = parseVideoUrl(v.video_url)
-  const id = info?.id || ''
-  // Priority: Supabase override > Railway thumbnail > YouTube auto
-  if (overrides[id]) return overrides[id]
-  if (v.thumbnail) return v.thumbnail
-  if (info?.provider === 'youtube') return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`
-  return '' // Vimeo — needs override
-}
-
-export default function WorkReel() {
+export default function WorkReel({ projects, loading, error }: { projects: Project[]; loading: boolean; error: boolean }) {
   const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
   const [sectionLabel, setSectionLabel] = useState('SCENE 02 — THE REEL')
   const [heading, setHeading] = useState('200+ commercials.')
   const [accent, setAccent] = useState('A selection.')
-  const [featured, setFeatured] = useState<RailwayVideo[]>([])
-  const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
-  const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({})
+  const featured = projects.filter(project => project.is_featured).slice(0, 12)
 
   useEffect(() => {
     fetch('/api/content').then(r => r.json()).then(d => {
@@ -57,56 +39,10 @@ export default function WorkReel() {
       if (d.section_reel_accent)  setAccent(d.section_reel_accent)
     }).catch(() => {})
 
-    // Primary: Supabase projects table; fallback: Railway
-    const loadVideos = async () => {
-      let data: RailwayVideo[] = []
-      try {
-        const r = await fetch('/api/admin/projects')
-        const d = await r.json()
-        data = d.projects || []
-      } catch {}
-      if (!data.length) {
-        try {
-          const r = await fetch(`${RAILWAY_API}/api/projects?is_active=true`)
-          const rv = await r.json()
-          if (Array.isArray(rv)) data = rv
-        } catch {}
-      }
-      if (!data.length) return
-      const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
-      const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
-      const clean = data.filter(v => {
-        const resolved = v.video_url || ''
-        return resolved && !isPlaceholder(resolved)
-      })
-      const feat = clean
-        .filter(v => v.is_featured)
-        .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
-        .slice(0, 12)
-      if (feat.length < 12) {
-        const nonFeat = clean.filter(v => !v.is_featured).slice(0, 12 - feat.length)
-        setFeatured([...feat, ...nonFeat])
-      } else {
-        setFeatured(feat)
-      }
-    }
-    loadVideos()
-
-    // Supabase thumbnail overrides
-    // Supabase thumbnail overrides (saved by admin → thumbnail_overrides table)
-    fetch('/api/admin/thumbnails')
-      .then(r => r.json())
-      .then(d => { if (d.overrides) setThumbOverrides(d.overrides) })
-      .catch(() => {})
-
-    fetch('/api/admin/video-url-overrides')
-      .then(r => r.json())
-      .then(d => { if (d.overrides) setUrlOverrides(d.overrides) })
-      .catch(() => {})
   }, [])
 
   return (
-    <section style={{ background: 'var(--color-bg)', borderTop: '0.5px solid var(--color-border)' }}>
+    <section aria-label="Selected brand films" style={{ background: 'var(--color-bg)', borderTop: '0.5px solid var(--color-border)' }}>
       {/* Section header */}
       <div style={{ padding: '4rem clamp(1.25rem,5vw,3.5rem) 2rem', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
         <div>
@@ -128,8 +64,12 @@ export default function WorkReel() {
         </div>
       </div>
 
+      {loading && <p role="status" style={{ padding: '2rem 3.5rem' }}>Loading films…</p>}
+      {error && <p role="status" style={{ padding: '2rem 3.5rem' }}>The films could not be loaded. Please refresh to try again.</p>}
+      {!loading && !error && featured.length === 0 && <p style={{ padding: '2rem 3.5rem' }}>No featured films selected yet.</p>}
+
       {/* Film grid */}
-      <div style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+      <div className="work-reel-grid" style={{ padding: '0 clamp(1.25rem,5vw,3.5rem)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
         {featured.map((video, i) => (
           <motion.button
             key={video.id}
@@ -138,7 +78,7 @@ export default function WorkReel() {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-60px' }}
-            onClick={() => setActive({ videoUrl: urlOverrides[video.id] || video.video_url, title: video.title, brand: video.client })}
+            onClick={() => setActive({ videoUrl: video.video_url || '', title: video.title, brand: video.client })}
             style={{
               position: 'relative', aspectRatio: '16/9',
               background: '#111', overflow: 'hidden',
@@ -147,14 +87,14 @@ export default function WorkReel() {
             }}
             data-film-card
           >
-            <Image
-              src={getThumb(video, thumbOverrides)}
+            {projectThumbnail(video) && <Image
+              src={projectThumbnail(video)}
               alt={video.title}
               fill
               sizes="(max-width: 768px) 100vw, 33vw"
               style={{ objectFit: 'cover', transition: 'transform 0.6s ease' }}
               unoptimized
-            />
+            />}
             {/* Hover overlay */}
             <div className="film-overlay" style={{
               position: 'absolute', inset: 0,
@@ -230,8 +170,8 @@ export default function WorkReel() {
         [data-film-card]:hover img { transform: scale(1.04); }
         .marquee-track { display: flex; animation: marquee 28s linear infinite; width: max-content; }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @media(max-width:900px){ section > div:nth-child(2) { grid-template-columns: repeat(2,1fr) !important; } }
-        @media(max-width:560px){ section > div:nth-child(2) { grid-template-columns: 1fr !important; } }
+        @media(max-width:900px){ .work-reel-grid { grid-template-columns: repeat(2,1fr) !important; } }
+        @media(max-width:560px){ .work-reel-grid { grid-template-columns: 1fr !important; } }
       `}</style>
     </section>
   )

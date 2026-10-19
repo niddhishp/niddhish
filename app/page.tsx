@@ -1,5 +1,5 @@
 import Hero from '@/sections/Hero'
-import WorkReel from '@/sections/WorkReel'
+import Reels from '@/sections/Reels'
 import FilmsReel from '@/sections/FilmsReel'
 import Depth from '@/sections/Depth'
 import Testimony from '@/sections/Testimony'
@@ -9,7 +9,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
-      <WorkReel />
+      <Reels />
       <FilmsReel />
       <Depth />
       <Testimony />

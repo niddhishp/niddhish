@@ -1,112 +1,46 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import VideoModal from '@/components/VideoModal'
-import { VIDEOS, getThumbnail, CATEGORY_LABELS, FEATURE_FILMS } from '@/lib/videos'
+import { FEATURE_FILMS } from '@/lib/videos'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { useProjects } from '@/lib/useProjects'
+import { isMusicVideo, MUSIC_VIDEO_FILTER, matchesCategory, projectThumbnail } from '@/lib/projects'
 import { parseVideoUrl } from '@/lib/videoUtils'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
-const RAILWAY_API = 'https://lightseeker-films-production.up.railway.app'
-
-interface RailwayVideo {
-  id: string
-  title: string
-  client: string
-  category: string
-  duration: string
-  thumbnail: string
-  video_url: string
-}
-
 export default function WorkClient() {
-  const [activeTab, setActiveTab] = useState('All')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const activeTab = searchParams.get('category') || 'All'
+  const setActiveTab = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (category === 'All') params.delete('category')
+    else params.set('category', category)
+    router.push(`/work${params.size ? `?${params}` : ''}`, { scroll: false })
+  }
   const [search, setSearch] = useState('')
   const [active, setActive] = useState<{ videoUrl: string; title: string; brand: string } | null>(null)
-  const [railwayVideos, setRailwayVideos] = useState<RailwayVideo[]|null>(null)
-  const [cats, setCats] = useState<string[]>([])
-  const [thumbOverrides, setThumbOverrides] = useState<Record<string, string>>({})
-  const [urlOverrides, setUrlOverrides] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    // Primary: Supabase projects table (admin-managed)
-    fetch('/api/admin/projects')
-      .then(r => r.json())
-      .then((d: { projects?: RailwayVideo[] }) => {
-        const data = d.projects || []
-        if (!data.length) {
-          // Fallback: Railway API if Supabase not yet seeded
-          return fetch(`https://lightseeker-films-production.up.railway.app/api/projects?is_active=true`)
-            .then(r => r.json())
-            .then((rv: RailwayVideo[]) => { if (Array.isArray(rv) && rv.length) return rv; return [] })
-        }
-        return data
-      })
-      .then((data: RailwayVideo[]) => {
-        if (!data?.length) return
-        setRailwayVideos(data)
-        const seen = new Set<string>()
-        const catList: string[] = []
-        data.forEach(v => { if (v.category && !seen.has(v.category)) { seen.add(v.category); catList.push(v.category) } })
-        setCats(catList.sort())
-      })
-      .catch(() => {})
-
-    fetch('/api/admin/thumbnails')
-      .then(r => r.json())
-      .then(d => { if (d.overrides) setThumbOverrides(d.overrides) })
-      .catch(() => {})
-
-    fetch('/api/admin/video-url-overrides')
-      .then(r => r.json())
-      .then(d => { if (d.overrides) setUrlOverrides(d.overrides) })
-      .catch(() => {})
-  }, [])
-
-  // Placeholder URL used in lightseeker admin when video URL wasn't set
-  const PLACEHOLDER_IDS = ['EQV7jlmU72Q']
-  const isPlaceholder = (url: string) => PLACEHOLDER_IDS.some(id => url?.includes(id))
-
-  const allVideos = railwayVideos
-    ? railwayVideos
-        .map(v => {
-          // Use Supabase URL override if available, otherwise Railway URL
-          const resolvedUrl = urlOverrides[v.id] || v.video_url || ''
-          if (!resolvedUrl || isPlaceholder(resolvedUrl)) return null
-          const info = parseVideoUrl(resolvedUrl)
-          const vimeoId = info?.provider === 'vimeo' ? info.id : ''
-          const thumb = (vimeoId && thumbOverrides[vimeoId])
-            || thumbOverrides[info?.id || '']
-            || v.thumbnail
-            || (info?.provider === 'youtube' ? `https://img.youtube.com/vi/${info.id}/maxresdefault.jpg` : '')
-          return {
-            videoUrl: resolvedUrl,
-            id: info?.id || '',
-            source: info?.provider === 'youtube' ? 'youtube' as const : 'vimeo' as const,
-            title: v.title,
-            brand: v.client,
-            category: v.category,
-            duration: v.duration,
-            thumbnail: thumb,
-          }
-        })
-        .filter(Boolean) as { videoUrl: string; id: string; source: 'youtube'|'vimeo'; title: string; brand: string; category: string; duration: string; thumbnail: string }[]
-    : VIDEOS.map(v => ({
-        videoUrl: v.source === 'youtube' ? `https://www.youtube.com/watch?v=${v.id}` : `https://vimeo.com/${v.id}`,
-        id: v.id, source: v.source, title: v.title, brand: v.brand,
-        category: v.category as string, duration: v.duration,
-        thumbnail: getThumbnail(v),
-      }))
+  const { projects, loading, error } = useProjects()
+  const allVideos = projects.map(v => ({
+    videoUrl: v.video_url || '',
+    id: v.id,
+    source: parseVideoUrl(v.video_url || '')?.provider,
+    title: v.title, brand: v.client, category: v.category,
+    duration: v.duration, thumbnail: projectThumbnail(v),
+  }))
+  const cats = [...new Set(projects.map(v => isMusicVideo(v.category) ? MUSIC_VIDEO_FILTER : v.category))].sort()
 
   const filtered = allVideos.filter(v => {
-    const catMatch = activeTab === 'All' || v.category === activeTab
+    const catMatch = matchesCategory(v.category, activeTab)
     const q = search.toLowerCase()
     return catMatch && (!q || v.title.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q))
   })
 
-  const tabList = railwayVideos ? ['All', ...cats] : ['All', ...Object.values(CATEGORY_LABELS)]
+  const tabList = ['All', ...cats]
 
   return (
     <main style={{ background: 'var(--color-bg)', minHeight: '100dvh' }}>
@@ -129,7 +63,7 @@ export default function WorkClient() {
             marginBottom: '1.5rem',
           }}>200+ Films. <em style={{ color: 'var(--color-accent)' }}>One Vision.</em></h1>
           <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--color-text-secondary)', maxWidth: 520 }}>
-            Two decades directing brand films, TVCs, and feature cinema across 80+ brands and categories.
+            Two decades directing brand films, music videos, TVCs, and feature cinema across 80+ brands and categories.
           </p>
         </div>
 
@@ -165,19 +99,20 @@ export default function WorkClient() {
 
         {/* Filter tabs + search */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: 0, overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: 0, overflowX: 'auto', maxWidth: '100%', minWidth: 0 }}>
             {tabList.map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} style={{
+              <button key={tab} onClick={() => setActiveTab(tab)} aria-pressed={tab === activeTab || (isMusicVideo(tab) && isMusicVideo(activeTab))} style={{
                 fontSize: 11, padding: '0.875rem 1.1rem',
                 background: 'transparent', border: 'none',
-                borderBottom: activeTab === tab ? '1.5px solid var(--color-accent)' : '1.5px solid transparent',
-                color: activeTab === tab ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                borderBottom: (activeTab === tab || (isMusicVideo(tab) && isMusicVideo(activeTab))) ? '1.5px solid var(--color-accent)' : '1.5px solid transparent',
+                color: (activeTab === tab || (isMusicVideo(tab) && isMusicVideo(activeTab))) ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                 cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.04em', whiteSpace: 'nowrap',
               }}>{tab}</button>
             ))}
           </div>
           <input
             type="text"
+            aria-label="Search films by brand or title"
             placeholder="Search brand or title..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -195,7 +130,8 @@ export default function WorkClient() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
           {filtered.map((video, i) => (
             <motion.button
-              key={`${video.videoUrl}-${i}`}
+              key={video.id}
+              aria-label={`Watch ${video.title}`}
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true, margin: '-40px' }}
@@ -204,14 +140,14 @@ export default function WorkClient() {
               style={{ position: 'relative', aspectRatio: '16/9', background: '#111', overflow: 'hidden', border: 'none', cursor: 'pointer', padding: 0 }}
               data-film-card
             >
-              <Image
-                src={video.thumbnail || `https://i.vimeocdn.com/video/${video.id}_640.jpg`}
+              {video.thumbnail && <Image
+                src={video.thumbnail}
                 alt={video.title}
                 fill
                 sizes="(max-width:640px) 50vw, 25vw"
                 style={{ objectFit: 'cover', transition: 'transform 0.55s ease' }}
                 unoptimized
-              />
+              />}
               <div className="wk-overlay" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)', opacity: 0, transition: 'opacity 0.3s', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0.875rem' }}>
                 <span style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-accent)', marginBottom: '0.2rem' }}>{video.brand}</span>
                 <span style={{ fontSize: 12, color: '#fff', lineHeight: 1.3, fontFamily: 'var(--font-playfair,serif)', textAlign: 'left' }}>{video.title}</span>
@@ -225,7 +161,7 @@ export default function WorkClient() {
           ))}
         </div>
         {filtered.length === 0 && (
-          <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 14 }}>No videos match your search.</div>
+          <div style={{ padding: '5rem', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 14 }}>{loading ? 'Loading films…' : error ? 'The films could not be loaded. Please refresh to try again.' : 'No videos match your search.'}</div>
         )}
       </div>
 
